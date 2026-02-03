@@ -1,14 +1,68 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth';
+import { Layout } from '@/components/Layout';
+import { MovementForm } from '@/components/MovementForm';
+import { MovementsList } from '@/components/MovementsList';
+import { QuickStats } from '@/components/QuickStats';
+import { SummaryTable } from '@/components/SummaryTable';
+import { Charts } from '@/components/Charts';
+import { CategoryManager } from '@/components/CategoryManager';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+export default function Index() {
+  const [currentTab, setCurrentTab] = useState('home');
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="space-y-4 w-full max-w-md p-4">
+          <Skeleton className="h-32 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
 
-export default Index;
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
+      {currentTab === 'home' && (
+        <div className="space-y-6 pb-20 lg:pb-6">
+          <QuickStats />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MovementForm />
+            <MovementsList />
+          </div>
+        </div>
+      )}
+
+      {currentTab === 'summary' && (
+        <div className="space-y-6 pb-20 lg:pb-6">
+          <Charts />
+          <SummaryTable type="expense" title="Resumen de Gastos" />
+          <SummaryTable type="income" title="Resumen de Ingresos" />
+          <SummaryTable type="savings" title="Resumen de Ahorros" />
+        </div>
+      )}
+
+      {currentTab === 'settings' && (
+        <div className="space-y-6 pb-20 lg:pb-6">
+          <CategoryManager />
+        </div>
+      )}
+    </Layout>
+  );
+}
