@@ -46,6 +46,7 @@ export type Database = {
           date: string
           detail: string | null
           id: string
+          is_withdrawal: boolean
           type: Database["public"]["Enums"]["movement_type"]
           updated_at: string
           user_id: string
@@ -57,6 +58,7 @@ export type Database = {
           date?: string
           detail?: string | null
           id?: string
+          is_withdrawal?: boolean
           type: Database["public"]["Enums"]["movement_type"]
           updated_at?: string
           user_id: string
@@ -68,6 +70,7 @@ export type Database = {
           date?: string
           detail?: string | null
           id?: string
+          is_withdrawal?: boolean
           type?: Database["public"]["Enums"]["movement_type"]
           updated_at?: string
           user_id?: string

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { useMovements, useCategories, MovementType } from '@/hooks/useMovements';
+import { useAllMovements, useCategories, MovementType } from '@/hooks/useMovements';
 import { cn } from '@/lib/utils';
 
 interface SummaryTableProps {
@@ -14,7 +14,7 @@ interface SummaryTableProps {
 }
 
 export function SummaryTable({ type, title }: SummaryTableProps) {
-  const { data: movements = [] } = useMovements();
+  const { data: movements = [] } = useAllMovements();
   const { data: categories = [] } = useCategories();
 
   const typeCategories = useMemo(() => {
@@ -22,10 +22,11 @@ export function SummaryTable({ type, title }: SummaryTableProps) {
   }, [categories, type]);
 
   const monthlyData = useMemo(() => {
+    // For savings, we show net amounts (deposits - withdrawals)
     const typeMovements = movements.filter((m) => m.type === type);
     
     if (typeMovements.length === 0) {
-      return { months: [], data: {}, totals: {} };
+      return { months: [], data: {}, totals: {}, monthTotals: {}, withdrawalData: {}, withdrawalTotals: {} };
     }
 
     // Get date range
@@ -41,33 +42,46 @@ export function SummaryTable({ type, title }: SummaryTableProps) {
 
     // Calculate data per month per category
     const data: Record<string, Record<string, number>> = {};
+    const withdrawalData: Record<string, Record<string, number>> = {};
     const totals: Record<string, number> = {};
+    const withdrawalTotals: Record<string, number> = {};
     const monthTotals: Record<string, number> = {};
 
     months.forEach((month) => {
       const monthKey = format(month, 'yyyy-MM');
       data[monthKey] = {};
+      withdrawalData[monthKey] = {};
       monthTotals[monthKey] = 0;
       
       typeCategories.forEach((cat) => {
-        const amount = typeMovements
-          .filter((m) => {
-            const movDate = parseISO(m.date);
-            return (
-              m.category_id === cat.id &&
-              movDate.getMonth() === month.getMonth() &&
-              movDate.getFullYear() === month.getFullYear()
-            );
-          })
+        const catMovements = typeMovements.filter((m) => {
+          const movDate = parseISO(m.date);
+          return (
+            m.category_id === cat.id &&
+            movDate.getMonth() === month.getMonth() &&
+            movDate.getFullYear() === month.getFullYear()
+          );
+        });
+
+        // Deposits (or regular amounts for non-savings)
+        const deposits = catMovements
+          .filter((m) => !m.is_withdrawal)
           .reduce((sum, m) => sum + Number(m.amount), 0);
         
-        data[monthKey][cat.id] = amount;
-        monthTotals[monthKey] += amount;
-        totals[cat.id] = (totals[cat.id] || 0) + amount;
+        // Withdrawals (only for savings)
+        const withdrawals = catMovements
+          .filter((m) => m.is_withdrawal)
+          .reduce((sum, m) => sum + Number(m.amount), 0);
+        
+        data[monthKey][cat.id] = deposits;
+        withdrawalData[monthKey][cat.id] = withdrawals;
+        monthTotals[monthKey] += (deposits - withdrawals);
+        totals[cat.id] = (totals[cat.id] || 0) + deposits;
+        withdrawalTotals[cat.id] = (withdrawalTotals[cat.id] || 0) + withdrawals;
       });
     });
 
-    return { months, data, totals, monthTotals };
+    return { months, data, totals, monthTotals, withdrawalData, withdrawalTotals };
   }, [movements, typeCategories, type]);
 
   const formatCurrency = (value: number) => {
@@ -90,6 +104,8 @@ export function SummaryTable({ type, title }: SummaryTableProps) {
     expense: 'bg-expense-light text-expense',
     savings: 'bg-savings-light text-savings',
   };
+
+  const isSavings = type === 'savings';
 
   if (typeCategories.length === 0) {
     return (
@@ -133,15 +149,22 @@ export function SummaryTable({ type, title }: SummaryTableProps) {
                       </TableCell>
                       {typeCategories.map((cat) => {
                         const value = monthlyData.data[monthKey]?.[cat.id] || 0;
-                        const pct = getPercentage(value, monthTotal);
+                        const withdrawal = monthlyData.withdrawalData?.[monthKey]?.[cat.id] || 0;
+                        const net = value - withdrawal;
+                        const pct = getPercentage(Math.abs(net), Math.abs(monthTotal));
                         
                         return (
                           <TableCell key={cat.id} className="text-center">
-                            {value > 0 ? (
+                            {value > 0 || withdrawal > 0 ? (
                               <div className="space-y-1">
                                 <p className="text-sm font-medium">
-                                  {formatCurrency(value)}
+                                  {formatCurrency(isSavings ? net : value)}
                                 </p>
+                                {isSavings && withdrawal > 0 && (
+                                  <p className="text-xs text-warning">
+                                    (-{formatCurrency(withdrawal)})
+                                  </p>
+                                )}
                                 <Badge variant="secondary" className={cn('text-xs', typeColors[type])}>
                                   {pct}%
                                 </Badge>
@@ -164,14 +187,23 @@ export function SummaryTable({ type, title }: SummaryTableProps) {
                   <TableCell className="sticky left-0 bg-muted/50 z-10">Total</TableCell>
                   {typeCategories.map((cat) => {
                     const value = monthlyData.totals[cat.id] || 0;
-                    const grandTotal = Object.values(monthlyData.totals).reduce((a, b) => a + b, 0);
-                    const pct = getPercentage(value, grandTotal);
+                    const withdrawal = monthlyData.withdrawalTotals?.[cat.id] || 0;
+                    const net = value - withdrawal;
+                    const grandTotal = Object.keys(monthlyData.totals).reduce((sum, catId) => {
+                      return sum + (monthlyData.totals[catId] || 0) - (monthlyData.withdrawalTotals?.[catId] || 0);
+                    }, 0);
+                    const pct = getPercentage(Math.abs(net), Math.abs(grandTotal));
                     
                     return (
                       <TableCell key={cat.id} className="text-center">
-                        {value > 0 ? (
+                        {value > 0 || withdrawal > 0 ? (
                           <div className="space-y-1">
-                            <p className="text-sm">{formatCurrency(value)}</p>
+                            <p className="text-sm">{formatCurrency(isSavings ? net : value)}</p>
+                            {isSavings && withdrawal > 0 && (
+                              <p className="text-xs text-warning">
+                                (-{formatCurrency(withdrawal)})
+                              </p>
+                            )}
                             <Badge className={cn('text-xs', typeColors[type])}>
                               {pct}%
                             </Badge>
@@ -183,7 +215,9 @@ export function SummaryTable({ type, title }: SummaryTableProps) {
                     );
                   })}
                   <TableCell className="text-center">
-                    {formatCurrency(Object.values(monthlyData.totals).reduce((a, b) => a + b, 0))}
+                    {formatCurrency(Object.keys(monthlyData.totals).reduce((sum, catId) => {
+                      return sum + (monthlyData.totals[catId] || 0) - (monthlyData.withdrawalTotals?.[catId] || 0);
+                    }, 0))}
                   </TableCell>
                 </TableRow>
               </TableBody>

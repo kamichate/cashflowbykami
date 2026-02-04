@@ -74,6 +74,20 @@ export default {
           DEFAULT: "hsl(var(--savings))",
           light: "hsl(var(--savings-light))",
         },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          light: "hsl(var(--warning-light))",
+        },
+        // Pastel palette for direct usage
+        pastel: {
+          pink: "hsl(var(--pastel-pink))",
+          "pink-light": "hsl(var(--pastel-pink-light))",
+          yellow: "hsl(var(--pastel-yellow))",
+          "yellow-light": "hsl(var(--pastel-yellow-light))",
+          blue: "hsl(var(--pastel-blue))",
+          "blue-light": "hsl(var(--pastel-blue-light))",
+          mint: "hsl(var(--pastel-mint))",
+        },
         // Rose palette for direct usage
         rose: {
           50: "hsl(var(--rose-50))",

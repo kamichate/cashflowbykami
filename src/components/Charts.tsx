@@ -4,16 +4,16 @@ import { es } from 'date-fns/locale';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useMovements, useCategories, MovementType } from '@/hooks/useMovements';
+import { useAllMovements, useCategories, MovementType } from '@/hooks/useMovements';
 
 const COLORS = {
-  income: ['#22c55e', '#16a34a', '#15803d', '#166534', '#14532d'],
-  expense: ['#a83261', '#8b2550', '#6e1d3f', '#52162f', '#f472b6', '#f9a8d4', '#ec4899', '#db2777', '#be185d', '#9d174d', '#831843', '#7c3aed', '#6366f1'],
-  savings: ['#3b82f6', '#2563eb', '#1d4ed8'],
+  income: ['hsl(160, 60%, 65%)', 'hsl(160, 55%, 55%)', 'hsl(160, 50%, 45%)', 'hsl(160, 45%, 40%)', 'hsl(160, 40%, 35%)'],
+  expense: ['hsl(350, 70%, 70%)', 'hsl(350, 65%, 60%)', 'hsl(350, 60%, 50%)', 'hsl(350, 55%, 45%)', 'hsl(45, 90%, 65%)', 'hsl(200, 80%, 70%)', 'hsl(350, 50%, 55%)', 'hsl(45, 85%, 60%)', 'hsl(200, 75%, 65%)', 'hsl(350, 45%, 50%)', 'hsl(160, 60%, 60%)', 'hsl(45, 80%, 55%)', 'hsl(200, 70%, 60%)'],
+  savings: ['hsl(200, 80%, 70%)', 'hsl(200, 75%, 60%)', 'hsl(200, 70%, 50%)'],
 };
 
 export function Charts() {
-  const { data: movements = [] } = useMovements();
+  const { data: movements = [] } = useAllMovements();
   const { data: categories = [] } = useCategories();
 
   const currentMonthData = useMemo(() => {
@@ -34,6 +34,10 @@ export function Charts() {
 
     monthMovements.forEach((m) => {
       const catName = m.category?.name || 'Otros';
+      // For savings, only count deposits (not withdrawals) in the pie chart
+      if (m.type === 'savings' && m.is_withdrawal) {
+        return; // Skip withdrawals for savings distribution
+      }
       byType[m.type as MovementType][catName] = (byType[m.type as MovementType][catName] || 0) + Number(m.amount);
     });
 
@@ -62,11 +66,21 @@ export function Charts() {
         return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
       });
 
+      const savingsDeposits = monthMovements
+        .filter((m) => m.type === 'savings' && !m.is_withdrawal)
+        .reduce((sum, m) => sum + Number(m.amount), 0);
+      
+      const savingsWithdrawals = monthMovements
+        .filter((m) => m.type === 'savings' && m.is_withdrawal)
+        .reduce((sum, m) => sum + Number(m.amount), 0);
+
       return {
         month: format(month, 'MMM yy', { locale: es }),
         Ingresos: monthMovements.filter((m) => m.type === 'income').reduce((sum, m) => sum + Number(m.amount), 0),
         Gastos: monthMovements.filter((m) => m.type === 'expense').reduce((sum, m) => sum + Number(m.amount), 0),
-        Ahorros: monthMovements.filter((m) => m.type === 'savings').reduce((sum, m) => sum + Number(m.amount), 0),
+        'Ahorro Neto': savingsDeposits - savingsWithdrawals,
+        Depósitos: savingsDeposits,
+        Retiros: savingsWithdrawals,
       };
     });
   }, [movements]);
@@ -184,9 +198,9 @@ export function Charts() {
                     <YAxis tickFormatter={(v) => `$${v / 1000}k`} className="text-xs" />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend />
-                    <Bar dataKey="Ingresos" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Gastos" fill="#a83261" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Ahorros" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Ingresos" fill="hsl(160, 60%, 65%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Gastos" fill="hsl(350, 70%, 70%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Ahorro Neto" fill="hsl(200, 80%, 70%)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -203,9 +217,9 @@ export function Charts() {
                     <YAxis tickFormatter={(v) => `$${v / 1000}k`} className="text-xs" />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend />
-                    <Line type="monotone" dataKey="Ingresos" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
-                    <Line type="monotone" dataKey="Gastos" stroke="#a83261" strokeWidth={2} dot={{ r: 4 }} />
-                    <Line type="monotone" dataKey="Ahorros" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="Ingresos" stroke="hsl(160, 60%, 65%)" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="Gastos" stroke="hsl(350, 70%, 70%)" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="Ahorro Neto" stroke="hsl(200, 80%, 70%)" strokeWidth={2} dot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
