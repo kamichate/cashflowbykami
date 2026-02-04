@@ -21,6 +21,7 @@ export interface Movement {
   category_id: string | null;
   detail: string | null;
   amount: number;
+  is_withdrawal: boolean;
   created_at: string;
   updated_at: string;
   category?: Category;
@@ -32,6 +33,7 @@ export interface NewMovement {
   category_id: string;
   detail?: string;
   amount: number;
+  is_withdrawal?: boolean;
 }
 
 export function useCategories() {
@@ -52,11 +54,64 @@ export function useCategories() {
   });
 }
 
-export function useMovements() {
+export interface MovementFilters {
+  type?: MovementType | 'all';
+  isWithdrawal?: boolean | 'all';
+  categoryId?: string | 'all';
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export function useMovements(filters?: MovementFilters) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['movements', user?.id],
+    queryKey: ['movements', user?.id, filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('movements')
+        .select(`
+          *,
+          category:categories(*)
+        `)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (filters?.type && filters.type !== 'all') {
+        query = query.eq('type', filters.type);
+      }
+
+      if (filters?.isWithdrawal !== undefined && filters.isWithdrawal !== 'all') {
+        query = query.eq('is_withdrawal', filters.isWithdrawal);
+      }
+
+      if (filters?.categoryId && filters.categoryId !== 'all') {
+        query = query.eq('category_id', filters.categoryId);
+      }
+
+      if (filters?.startDate) {
+        query = query.gte('date', filters.startDate.toISOString().split('T')[0]);
+      }
+
+      if (filters?.endDate) {
+        query = query.lte('date', filters.endDate.toISOString().split('T')[0]);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data as (Movement & { category: Category | null })[];
+    },
+    enabled: !!user,
+  });
+}
+
+// Hook for all movements without filters (for calculations)
+export function useAllMovements() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['all-movements', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('movements')
@@ -86,6 +141,7 @@ export function useAddMovement() {
         .from('movements')
         .insert({
           ...movement,
+          is_withdrawal: movement.is_withdrawal || false,
           user_id: user.id,
         })
         .select()
@@ -96,6 +152,7 @@ export function useAddMovement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['movements'] });
+      queryClient.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Movimiento agregado');
     },
     onError: (error) => {
@@ -119,6 +176,7 @@ export function useDeleteMovement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['movements'] });
+      queryClient.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Movimiento eliminado');
     },
     onError: (error) => {
