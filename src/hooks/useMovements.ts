@@ -22,6 +22,10 @@ export interface Movement {
   detail: string | null;
   amount: number;
   is_withdrawal: boolean;
+  is_initial_savings: boolean;
+  currency: 'ARS' | 'USD';
+  exchange_rate: number | null;
+  original_amount: number | null;
   created_at: string;
   updated_at: string;
   category?: Category;
@@ -33,6 +37,19 @@ export interface NewMovement {
   category_id: string;
   detail?: string;
   amount: number;
+  is_withdrawal?: boolean;
+  is_initial_savings?: boolean;
+  currency?: 'ARS' | 'USD';
+  exchange_rate?: number;
+  original_amount?: number;
+}
+
+export interface UpdateMovement {
+  id: string;
+  date?: string;
+  category_id?: string;
+  detail?: string | null;
+  amount?: number;
   is_withdrawal?: boolean;
 }
 
@@ -142,6 +159,10 @@ export function useAddMovement() {
         .insert({
           ...movement,
           is_withdrawal: movement.is_withdrawal || false,
+          is_initial_savings: movement.is_initial_savings || false,
+          currency: movement.currency || 'ARS',
+          exchange_rate: movement.exchange_rate || null,
+          original_amount: movement.original_amount || null,
           user_id: user.id,
         })
         .select()
@@ -157,6 +178,35 @@ export function useAddMovement() {
     },
     onError: (error) => {
       toast.error('Error al agregar movimiento');
+      console.error(error);
+    },
+  });
+}
+
+export function useUpdateMovement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (movement: UpdateMovement) => {
+      const { id, ...updates } = movement;
+      
+      const { data, error } = await supabase
+        .from('movements')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['movements'] });
+      queryClient.invalidateQueries({ queryKey: ['all-movements'] });
+      toast.success('Movimiento actualizado');
+    },
+    onError: (error) => {
+      toast.error('Error al actualizar movimiento');
       console.error(error);
     },
   });

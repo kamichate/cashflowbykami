@@ -43,10 +43,14 @@ export type Database = {
           amount: number
           category_id: string | null
           created_at: string
+          currency: string
           date: string
           detail: string | null
+          exchange_rate: number | null
           id: string
+          is_initial_savings: boolean
           is_withdrawal: boolean
+          original_amount: number | null
           type: Database["public"]["Enums"]["movement_type"]
           updated_at: string
           user_id: string
@@ -55,10 +59,14 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string
+          currency?: string
           date?: string
           detail?: string | null
+          exchange_rate?: number | null
           id?: string
+          is_initial_savings?: boolean
           is_withdrawal?: boolean
+          original_amount?: number | null
           type: Database["public"]["Enums"]["movement_type"]
           updated_at?: string
           user_id: string
@@ -67,10 +75,14 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string
+          currency?: string
           date?: string
           detail?: string | null
+          exchange_rate?: number | null
           id?: string
+          is_initial_savings?: boolean
           is_withdrawal?: boolean
+          original_amount?: number | null
           type?: Database["public"]["Enums"]["movement_type"]
           updated_at?: string
           user_id?: string
