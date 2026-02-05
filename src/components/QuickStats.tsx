@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { TrendingUp, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight, History } from 'lucide-react';
+import { TrendingUp, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight, History, DollarSign } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAllMovements, MovementType } from '@/hooks/useMovements';
+import { parseDateString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
 export function QuickStats() {
@@ -12,12 +13,16 @@ export function QuickStats() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
+    // Helper to get month/year from date string without timezone issues
+    const getMonthYear = (dateStr: string) => {
+      const date = parseDateString(dateStr);
+      return { month: date.getMonth(), year: date.getFullYear() };
+    };
+
     // Calculate previous month's ending balance
     const previousMonthsMovements = movements.filter((m) => {
-      const date = new Date(m.date);
-      const moveYear = date.getFullYear();
-      const moveMonth = date.getMonth();
-      return moveYear < currentYear || (moveYear === currentYear && moveMonth < currentMonth);
+      const { month, year } = getMonthYear(m.date);
+      return year < currentYear || (year === currentYear && month < currentMonth);
     });
 
     const prevIncome = previousMonthsMovements
@@ -28,22 +33,21 @@ export function QuickStats() {
       .filter((m) => m.type === 'expense')
       .reduce((sum, m) => sum + Number(m.amount), 0);
 
-    // Savings: deposits minus withdrawals
-    const prevSavingsDeposits = previousMonthsMovements
-      .filter((m) => m.type === 'savings' && !m.is_withdrawal)
+    // Previous savings: only non-initial deposits count against balance
+    const prevSavingsDeducted = previousMonthsMovements
+      .filter((m) => m.type === 'savings' && !m.is_withdrawal && !m.is_initial_savings)
       .reduce((sum, m) => sum + Number(m.amount), 0);
 
     const prevSavingsWithdrawals = previousMonthsMovements
       .filter((m) => m.type === 'savings' && m.is_withdrawal)
       .reduce((sum, m) => sum + Number(m.amount), 0);
 
-    const prevSavingsNet = prevSavingsDeposits - prevSavingsWithdrawals;
-    const previousBalance = prevIncome - prevExpense - prevSavingsNet + prevSavingsWithdrawals;
+    const previousBalance = prevIncome - prevExpense - prevSavingsDeducted + prevSavingsWithdrawals;
 
     // Current month calculations
     const monthlyMovements = movements.filter((m) => {
-      const date = new Date(m.date);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      const { month, year } = getMonthYear(m.date);
+      return month === currentMonth && year === currentYear;
     });
 
     const income = monthlyMovements
@@ -54,17 +58,16 @@ export function QuickStats() {
       .filter((m) => m.type === 'expense')
       .reduce((sum, m) => sum + Number(m.amount), 0);
 
-    const savingsDeposits = monthlyMovements
-      .filter((m) => m.type === 'savings' && !m.is_withdrawal)
+    // Only non-initial savings are deducted from income
+    const savingsDeducted = monthlyMovements
+      .filter((m) => m.type === 'savings' && !m.is_withdrawal && !m.is_initial_savings)
       .reduce((sum, m) => sum + Number(m.amount), 0);
 
     const savingsWithdrawals = monthlyMovements
       .filter((m) => m.type === 'savings' && m.is_withdrawal)
       .reduce((sum, m) => sum + Number(m.amount), 0);
 
-    const savingsNet = savingsDeposits - savingsWithdrawals;
-
-    // Total savings accumulated (all time)
+    // Total savings accumulated (all time) - includes initial savings
     const allSavingsDeposits = movements
       .filter((m) => m.type === 'savings' && !m.is_withdrawal)
       .reduce((sum, m) => sum + Number(m.amount), 0);
@@ -75,28 +78,38 @@ export function QuickStats() {
 
     const totalSavings = allSavingsDeposits - allSavingsWithdrawals;
 
-    // Current month balance = income - expenses - net savings + previous balance
-    // When you withdraw, it adds back to available balance
-    const monthBalance = income - expense - savingsNet + savingsWithdrawals;
+    // Calculate USD savings separately (using original_amount for display)
+    const usdSavingsDeposits = movements
+      .filter((m) => m.type === 'savings' && !m.is_withdrawal && m.currency === 'USD')
+      .reduce((sum, m) => sum + Number(m.original_amount || 0), 0);
+
+    const usdSavingsWithdrawals = movements
+      .filter((m) => m.type === 'savings' && m.is_withdrawal && m.currency === 'USD')
+      .reduce((sum, m) => sum + Number(m.original_amount || 0), 0);
+
+    const totalUsdSavings = usdSavingsDeposits - usdSavingsWithdrawals;
+
+    // Current month balance = income - expenses - deducted savings + withdrawals
+    const monthBalance = income - expense - savingsDeducted + savingsWithdrawals;
     const totalBalance = previousBalance + monthBalance;
 
     return { 
       income, 
       expense, 
-      savingsDeposits,
+      savingsDeducted,
       savingsWithdrawals,
-      savingsNet,
       totalSavings,
+      totalUsdSavings,
       monthBalance,
       totalBalance,
       previousBalance
     };
   }, [movements]);
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number, currency: 'ARS' | 'USD' = 'ARS') => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
-      currency: 'ARS',
+      currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -123,7 +136,7 @@ export function QuickStats() {
       icon: PiggyBank,
       color: 'text-savings',
       bgColor: 'bg-savings-light',
-      subtitle: stats.savingsWithdrawals > 0 ? `(-${formatCurrency(stats.savingsWithdrawals)} retiros)` : undefined,
+      subtitle: stats.totalUsdSavings > 0 ? `${formatCurrency(stats.totalUsdSavings, 'USD')} USD` : undefined,
     },
   ];
 
@@ -177,7 +190,10 @@ export function QuickStats() {
                   {formatCurrency(card.value)}
                 </p>
                 {card.subtitle && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{card.subtitle}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-center gap-0.5">
+                    <DollarSign className="w-2 h-2" />
+                    {card.subtitle}
+                  </p>
                 )}
               </CardContent>
             </Card>
