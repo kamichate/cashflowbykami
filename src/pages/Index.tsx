@@ -8,6 +8,8 @@ import { QuickStats } from '@/components/QuickStats';
 import { SummaryTable } from '@/components/SummaryTable';
 import { Charts } from '@/components/Charts';
 import { CategoryManager } from '@/components/CategoryManager';
+import { SharedExpenses } from '@/components/SharedExpenses';
+import { PendingMoney } from '@/components/PendingMoney';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Index() {
@@ -46,6 +48,13 @@ export default function Index() {
             <MovementForm />
             <MovementsList />
           </div>
+        </div>
+      )}
+
+      {currentTab === 'shared' && (
+        <div className="space-y-6 pb-20 lg:pb-6">
+          <PendingMoney />
+          <SharedExpenses />
         </div>
       )}
 

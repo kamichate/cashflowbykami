@@ -97,6 +97,27 @@ export type Database = {
           },
         ]
       }
+      people: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -120,6 +141,88 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      shared_expense_participants: {
+        Row: {
+          amount_owed: number
+          amount_paid: number
+          created_at: string
+          id: string
+          is_settled: boolean
+          person_name: string
+          shared_expense_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_owed?: number
+          amount_paid?: number
+          created_at?: string
+          id?: string
+          is_settled?: boolean
+          person_name: string
+          shared_expense_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_owed?: number
+          amount_paid?: number
+          created_at?: string
+          id?: string
+          is_settled?: boolean
+          person_name?: string
+          shared_expense_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_expense_participants_shared_expense_id_fkey"
+            columns: ["shared_expense_id"]
+            isOneToOne: false
+            referencedRelation: "shared_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_expenses: {
+        Row: {
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          movement_id: string | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          movement_id?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          movement_id?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_expenses_movement_id_fkey"
+            columns: ["movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
