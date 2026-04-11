@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth';
 import { Layout } from '@/components/Layout';
 import { MovementForm } from '@/components/MovementForm';
 import { MovementsList } from '@/components/MovementsList';
-import { QuickStats } from '@/components/QuickStats';
+import { Dashboard } from '@/components/Dashboard';
 import { SummaryTable } from '@/components/SummaryTable';
 import { Charts } from '@/components/Charts';
 import { CategoryManager } from '@/components/CategoryManager';
@@ -43,7 +43,7 @@ export default function Index() {
     <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
       {currentTab === 'home' && (
         <div className="space-y-6 pb-20 lg:pb-6">
-          <QuickStats />
+          <Dashboard />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MovementForm />
             <MovementsList />
