@@ -134,7 +134,7 @@ export function Dashboard() {
     };
   }, [movements]);
 
-  const totalPending = pendingSummary?.totalPending || 0;
+  const totalPending = pendingSummary?.total || 0;
 
   return (
     <div className="space-y-4 animate-fade-in">
