@@ -19,7 +19,7 @@ const formatCurrency = (value: number, currency: 'ARS' | 'USD' = 'ARS') =>
 
 export function Dashboard() {
   const { data: movements = [] } = useAllMovements();
-  const { data: pendingSummary } = usePendingMoneySummary();
+  const pendingSummary = usePendingMoneySummary();
 
   const stats = useMemo(() => {
     const now = new Date();
