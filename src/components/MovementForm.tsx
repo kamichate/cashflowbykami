@@ -285,6 +285,7 @@ export function MovementForm() {
                       setIsCalendarOpen(false);
                     }}
                     initialFocus
+                    className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>

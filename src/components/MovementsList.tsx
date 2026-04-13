@@ -222,6 +222,7 @@ export function MovementsList() {
                         selected={dateRange.start}
                         onSelect={(d) => setDateRange(prev => ({ ...prev, start: d }))}
                         initialFocus
+                        className="p-3 pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -242,6 +243,7 @@ export function MovementsList() {
                         selected={dateRange.end}
                         onSelect={(d) => setDateRange(prev => ({ ...prev, end: d }))}
                         initialFocus
+                        className="p-3 pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
