@@ -47,6 +47,7 @@ export interface NewMovement {
 export interface UpdateMovement {
   id: string;
   date?: string;
+  type?: MovementType;
   category_id?: string;
   detail?: string | null;
   amount?: number;
