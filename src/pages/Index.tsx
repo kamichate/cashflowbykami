@@ -10,6 +10,9 @@ import { Charts } from '@/components/Charts';
 import { CategoryManager } from '@/components/CategoryManager';
 import { SharedExpenses } from '@/components/SharedExpenses';
 import { PendingMoney } from '@/components/PendingMoney';
+import { PendingPayments } from '@/components/PendingPayments';
+import { Notifications } from '@/components/Notifications';
+import { ExportData } from '@/components/ExportData';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Index() {
@@ -43,6 +46,7 @@ export default function Index() {
     <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
       {currentTab === 'home' && (
         <div className="space-y-6 pb-20 lg:pb-6">
+          <Notifications />
           <Dashboard />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MovementForm />
@@ -58,6 +62,12 @@ export default function Index() {
         </div>
       )}
 
+      {currentTab === 'payments' && (
+        <div className="space-y-6 pb-20 lg:pb-6">
+          <PendingPayments />
+        </div>
+      )}
+
       {currentTab === 'summary' && (
         <div className="space-y-6 pb-20 lg:pb-6">
           <Charts />
@@ -70,6 +80,7 @@ export default function Index() {
       {currentTab === 'settings' && (
         <div className="space-y-6 pb-20 lg:pb-6">
           <CategoryManager />
+          <ExportData />
         </div>
       )}
     </Layout>
