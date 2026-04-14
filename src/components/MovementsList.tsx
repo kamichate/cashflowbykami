@@ -172,6 +172,8 @@ export function MovementsList() {
                       <SelectItem value="income">Ingresos</SelectItem>
                       <SelectItem value="expense">Gastos</SelectItem>
                       <SelectItem value="savings">Ahorros</SelectItem>
+                      <SelectItem value="transfer">Transferencias</SelectItem>
+                      <SelectItem value="yield">Rendimientos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
