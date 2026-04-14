@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 
-export type MovementType = 'income' | 'expense' | 'savings';
+export type MovementType = 'income' | 'expense' | 'savings' | 'transfer' | 'yield';
 
 export interface Category {
   id: string;
@@ -26,6 +26,7 @@ export interface Movement {
   currency: 'ARS' | 'USD';
   exchange_rate: number | null;
   original_amount: number | null;
+  personal_amount: number | null;
   created_at: string;
   updated_at: string;
   category?: Category;
@@ -42,6 +43,7 @@ export interface NewMovement {
   currency?: 'ARS' | 'USD';
   exchange_rate?: number;
   original_amount?: number;
+  personal_amount?: number;
 }
 
 export interface UpdateMovement {
