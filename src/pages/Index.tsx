@@ -74,6 +74,8 @@ export default function Index() {
           <SummaryTable type="expense" title="Resumen de Gastos" />
           <SummaryTable type="income" title="Resumen de Ingresos" />
           <SummaryTable type="savings" title="Resumen de Ahorros" />
+          <SummaryTable type="transfer" title="Resumen de Transferencias" />
+          <SummaryTable type="yield" title="Resumen de Rendimientos" />
         </div>
       )}
 

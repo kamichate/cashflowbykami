@@ -99,10 +99,12 @@ export function SummaryTable({ type, title }: SummaryTableProps) {
     return Math.round((value / total) * 100);
   };
 
-  const typeColors = {
+  const typeColors: Record<string, string> = {
     income: 'bg-income-light text-income',
     expense: 'bg-expense-light text-expense',
     savings: 'bg-savings-light text-savings',
+    transfer: 'bg-primary/10 text-primary',
+    yield: 'bg-savings-light text-savings',
   };
 
   const isSavings = type === 'savings';
