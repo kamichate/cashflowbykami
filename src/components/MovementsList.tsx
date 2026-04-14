@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign } from 'lucide-react';
+import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign, ArrowLeftRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,7 +14,7 @@ import { EditMovementDialog } from './EditMovementDialog';
 import { parseDateString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
-const typeConfig = {
+const typeConfig: Record<MovementType, { icon: any; color: string; bgColor: string; sign: string; label: string }> = {
   income: {
     icon: TrendingUp,
     color: 'text-income',
@@ -35,6 +35,20 @@ const typeConfig = {
     bgColor: 'bg-savings-light',
     sign: '→',
     label: 'Ahorro',
+  },
+  transfer: {
+    icon: ArrowLeftRight,
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    sign: '+',
+    label: 'Transferencia',
+  },
+  yield: {
+    icon: Sparkles,
+    color: 'text-savings',
+    bgColor: 'bg-savings-light',
+    sign: '↑',
+    label: 'Rendimiento',
   },
 };
 
@@ -158,6 +172,8 @@ export function MovementsList() {
                       <SelectItem value="income">Ingresos</SelectItem>
                       <SelectItem value="expense">Gastos</SelectItem>
                       <SelectItem value="savings">Ahorros</SelectItem>
+                      <SelectItem value="transfer">Transferencias</SelectItem>
+                      <SelectItem value="yield">Rendimientos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

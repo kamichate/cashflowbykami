@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Plus, TrendingUp, Wallet, PiggyBank, ArrowDownToLine, ArrowUpFromLine, Archive } from 'lucide-react';
+import { CalendarIcon, Plus, TrendingUp, Wallet, PiggyBank, ArrowDownToLine, ArrowUpFromLine, Archive, ArrowLeftRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,28 +16,14 @@ import { ExchangeRateDialog } from './ExchangeRateDialog';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
-const typeConfig = {
-  income: {
-    label: 'Ingreso',
-    icon: TrendingUp,
-    color: 'text-income',
-    bgColor: 'bg-income-light',
-  },
-  expense: {
-    label: 'Gasto',
-    icon: Wallet,
-    color: 'text-expense',
-    bgColor: 'bg-expense-light',
-  },
-  savings: {
-    label: 'Ahorro',
-    icon: PiggyBank,
-    color: 'text-savings',
-    bgColor: 'bg-savings-light',
-  },
+const typeConfig: Record<MovementType, { label: string; icon: any; color: string; bgColor: string }> = {
+  income: { label: 'Ingreso', icon: TrendingUp, color: 'text-income', bgColor: 'bg-income-light' },
+  expense: { label: 'Gasto', icon: Wallet, color: 'text-expense', bgColor: 'bg-expense-light' },
+  savings: { label: 'Ahorro', icon: PiggyBank, color: 'text-savings', bgColor: 'bg-savings-light' },
+  transfer: { label: 'Transferencia', icon: ArrowLeftRight, color: 'text-primary', bgColor: 'bg-primary/10' },
+  yield: { label: 'Rendimiento', icon: Sparkles, color: 'text-savings', bgColor: 'bg-savings-light' },
 };
 
-// Categories that use USD currency
 const USD_CATEGORY_NAMES = ['dólares', 'dolares'];
 
 function isUsdCategory(category: Category | undefined): boolean {
@@ -63,7 +49,9 @@ export function MovementForm() {
   const { data: categories = [] } = useCategories();
   const addMovement = useAddMovement();
 
-  const filteredCategories = categories.filter((c) => c.type === type);
+  // Transfer and yield use income categories (they add money)
+  const categoryType = type === 'transfer' ? 'income' : type === 'yield' ? 'savings' : type;
+  const filteredCategories = categories.filter((c) => c.type === categoryType);
   
   const selectedCategory = useMemo(() => {
     return categories.find(c => c.id === categoryId);
@@ -71,24 +59,23 @@ export function MovementForm() {
 
   const isUsd = isUsdCategory(selectedCategory);
 
+  // For transfer/yield, no category is needed
+  const needsCategory = type !== 'transfer';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!categoryId || !amount) return;
+    if (needsCategory && !categoryId) return;
+    if (!amount) return;
 
     const parsedAmount = parseFloat(amount);
 
-    // If it's a USD savings category, show exchange rate dialog
     if (type === 'savings' && isUsd && !isInitialSavings) {
-      setPendingSubmit({
-        usdAmount: parsedAmount,
-        isWithdrawal,
-      });
+      setPendingSubmit({ usdAmount: parsedAmount, isWithdrawal });
       setShowExchangeDialog(true);
       return;
     }
 
-    // Normal flow (ARS or initial savings)
     submitMovement({
       amount: parsedAmount,
       currency: isUsd ? 'USD' : 'ARS',
@@ -105,7 +92,7 @@ export function MovementForm() {
       {
         date: formatDateToString(date),
         type,
-        category_id: categoryId,
+        category_id: needsCategory ? categoryId : categories.find(c => c.type === 'income')?.id || categoryId,
         detail: detail.trim() || undefined,
         amount: options.amount,
         is_withdrawal: type === 'savings' ? isWithdrawal : false,
@@ -128,14 +115,12 @@ export function MovementForm() {
 
   const handleExchangeConfirm = (exchangeRate: number, arsAmount: number) => {
     if (!pendingSubmit) return;
-
     submitMovement({
-      amount: arsAmount, // Store the ARS equivalent
+      amount: arsAmount,
       currency: 'USD',
       exchangeRate,
       originalAmount: pendingSubmit.usdAmount,
     });
-
     setShowExchangeDialog(false);
     setPendingSubmit(null);
   };
@@ -155,6 +140,8 @@ export function MovementForm() {
       if (isWithdrawal) return 'Retiro de Ahorro';
       return 'Nuevo Ahorro';
     }
+    if (type === 'transfer') return 'Nueva Transferencia';
+    if (type === 'yield') return 'Nuevo Rendimiento';
     return 'Nuevo Movimiento';
   };
 
@@ -164,6 +151,8 @@ export function MovementForm() {
       if (isInitialSavings) return 'Agregar Ahorro Inicial';
       if (isWithdrawal) return 'Registrar Retiro';
     }
+    if (type === 'transfer') return 'Registrar Transferencia';
+    if (type === 'yield') return 'Registrar Rendimiento';
     return 'Agregar Movimiento';
   };
 
@@ -199,7 +188,7 @@ export function MovementForm() {
                 onValueChange={(v) => {
                   if (v) handleTypeChange(v as MovementType);
                 }}
-                className="justify-start"
+                className="justify-start flex-wrap"
               >
                 {Object.entries(typeConfig).map(([key, config]) => {
                   const Icon = config.icon;
@@ -223,7 +212,6 @@ export function MovementForm() {
             {/* Savings Options */}
             {type === 'savings' && (
               <div className="space-y-3">
-                {/* Initial Savings Toggle */}
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
                   <div className="flex items-center gap-2">
                     <Archive className="w-4 h-4 text-muted-foreground" />
@@ -240,8 +228,6 @@ export function MovementForm() {
                     }}
                   />
                 </div>
-
-                {/* Withdrawal Toggle - only show if not initial savings */}
                 {!isInitialSavings && (
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
                     <div className="flex items-center gap-2">
@@ -254,12 +240,21 @@ export function MovementForm() {
                         {isWithdrawal ? 'Retiro de ahorros' : 'Depósito a ahorros'}
                       </span>
                     </div>
-                    <Switch 
-                      checked={isWithdrawal} 
-                      onCheckedChange={setIsWithdrawal}
-                    />
+                    <Switch checked={isWithdrawal} onCheckedChange={setIsWithdrawal} />
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Transfer/Yield info */}
+            {type === 'transfer' && (
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
+                Las transferencias aumentan tu balance sin contarse como ingreso.
+              </div>
+            )}
+            {type === 'yield' && (
+              <div className="p-3 rounded-lg bg-savings-light/50 border border-savings/20 text-sm text-muted-foreground">
+                Los rendimientos se acumulan en ahorros sin afectar el balance.
               </div>
             )}
 
@@ -268,10 +263,7 @@ export function MovementForm() {
               <Label>Fecha</Label>
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {format(date, "PPP", { locale: es })}
                   </Button>
@@ -291,23 +283,25 @@ export function MovementForm() {
               </Popover>
             </div>
 
-            {/* Category */}
-            <div className="space-y-2">
-              <Label>Categoría</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                      {isUsdCategory(cat) && ' 💵'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Category - not required for transfers */}
+            {needsCategory && (
+              <div className="space-y-2">
+                <Label>Categoría</Label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                        {isUsdCategory(cat) && ' 💵'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Amount */}
             <div className="space-y-2">
@@ -345,7 +339,7 @@ export function MovementForm() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={!categoryId || !amount || addMovement.isPending}
+              disabled={(needsCategory && !categoryId) || !amount || addMovement.isPending}
             >
               <Plus className="w-4 h-4 mr-2" />
               {getButtonText()}
@@ -354,7 +348,6 @@ export function MovementForm() {
         </CardContent>
       </Card>
 
-      {/* Exchange Rate Dialog for USD savings */}
       {pendingSubmit && (
         <ExchangeRateDialog
           open={showExchangeDialog}
