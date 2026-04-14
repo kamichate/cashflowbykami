@@ -166,6 +166,7 @@ export function useAddMovement() {
           currency: movement.currency || 'ARS',
           exchange_rate: movement.exchange_rate || null,
           original_amount: movement.original_amount || null,
+          personal_amount: movement.personal_amount ?? null,
           user_id: user.id,
         })
         .select()
