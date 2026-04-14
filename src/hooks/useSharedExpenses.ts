@@ -38,6 +38,7 @@ export interface NewSharedExpense {
   description?: string;
   date: string;
   movement_id?: string;
+  category_id?: string;
   participants: { person_name: string; amount_owed: number }[];
 }
 
@@ -106,7 +107,7 @@ export function useSharedExpenses() {
   });
 }
 
-// Add shared expense with participants
+// Add shared expense with participants + auto-create expense movement
 export function useAddSharedExpense() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -114,6 +115,33 @@ export function useAddSharedExpense() {
   return useMutation({
     mutationFn: async (input: NewSharedExpense) => {
       if (!user) throw new Error('No user');
+
+      // Calculate user's personal share
+      const othersOwed = input.participants.reduce((sum, p) => sum + p.amount_owed, 0);
+      const personalAmount = input.total_amount - othersOwed;
+
+      // Create the expense movement (full amount affects balance)
+      const movementInsert: any = {
+        user_id: user.id,
+        date: input.date,
+        type: 'expense' as const,
+        amount: input.total_amount,
+        personal_amount: personalAmount, // User's share for category analysis
+        detail: input.description ? `Compartido: ${input.description}` : 'Gasto compartido',
+        is_withdrawal: false,
+        is_initial_savings: false,
+        currency: 'ARS',
+      };
+      if (input.category_id) {
+        movementInsert.category_id = input.category_id;
+      }
+
+      const { data: movement, error: movError } = await supabase
+        .from('movements')
+        .insert(movementInsert)
+        .select()
+        .single();
+      if (movError) throw movError;
 
       // Create the shared expense
       const { data: se, error: seError } = await supabase
@@ -123,7 +151,7 @@ export function useAddSharedExpense() {
           total_amount: input.total_amount,
           description: input.description || null,
           date: input.date,
-          movement_id: input.movement_id || null,
+          movement_id: movement.id,
         })
         .select()
         .single();
@@ -154,22 +182,27 @@ export function useAddSharedExpense() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shared-expenses'] });
       queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ['movements'] });
+      queryClient.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Gasto compartido registrado');
     },
     onError: () => toast.error('Error al registrar gasto compartido'),
   });
 }
 
-// Register a payment from a participant
+// Register a payment from a participant - creates a transfer movement
 export function useRegisterPayment() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ participantId, amount }: { participantId: string; amount: number }) => {
+      if (!user) throw new Error('No user');
+
       // Get current participant
       const { data: participant, error: getErr } = await supabase
         .from('shared_expense_participants')
-        .select('*')
+        .select('*, shared_expense:shared_expenses(*)')
         .eq('id', participantId)
         .single();
       if (getErr) throw getErr;
@@ -177,14 +210,32 @@ export function useRegisterPayment() {
       const newPaid = (participant.amount_paid || 0) + amount;
       const isSettled = newPaid >= (participant.amount_owed || 0);
 
+      // Update participant
       const { error } = await supabase
         .from('shared_expense_participants')
         .update({ amount_paid: newPaid, is_settled: isSettled })
         .eq('id', participantId);
       if (error) throw error;
+
+      // Create a transfer movement (increases balance, NOT income)
+      const { error: movErr } = await supabase
+        .from('movements')
+        .insert({
+          user_id: user.id,
+          date: new Date().toISOString().split('T')[0],
+          type: 'transfer' as const,
+          amount,
+          detail: `Pago de ${participant.person_name}`,
+          is_withdrawal: false,
+          is_initial_savings: false,
+          currency: 'ARS',
+        });
+      if (movErr) throw movErr;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shared-expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['movements'] });
+      queryClient.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Pago registrado');
     },
     onError: () => toast.error('Error al registrar pago'),

@@ -4,25 +4,13 @@ import { es } from 'date-fns/locale';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAllMovements, useCategories, MovementType } from '@/hooks/useMovements';
+import { useAllMovements, useCategories } from '@/hooks/useMovements';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
 
-const formatUSD = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
+const formatUSD = (value: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -60,7 +48,7 @@ export function Charts() {
   const { data: movements = [] } = useAllMovements();
   const { data: categories = [] } = useCategories();
 
-  // Weekly expenses for current month
+  // Weekly expenses - use personal_amount for shared expenses
   const weeklyExpenses = useMemo(() => {
     const now = new Date();
     const monthStart = startOfMonth(now);
@@ -89,13 +77,13 @@ export function Charts() {
 
       const result: Record<string, any> = {
         week: `Sem ${i + 1} (${format(wStart, 'dd/MM')})`,
-        Total: weekMovements.reduce((sum, m) => sum + Number(m.amount), 0),
+        Total: weekMovements.reduce((sum, m) => sum + Number(m.personal_amount ?? m.amount), 0),
       };
 
       expenseCategories.forEach(cat => {
         result[cat.name] = weekMovements
           .filter(m => m.category_id === cat.id)
-          .reduce((sum, m) => sum + Number(m.amount), 0);
+          .reduce((sum, m) => sum + Number(m.personal_amount ?? m.amount), 0);
       });
 
       return result;
@@ -106,7 +94,7 @@ export function Charts() {
     return categories.filter(c => c.type === 'expense').map(c => c.name);
   }, [categories]);
 
-  // Monthly trend with remainder
+  // Monthly trend - transfers don't count as income, yields separate
   const monthlyTrend = useMemo(() => {
     if (movements.length === 0) return [];
 
@@ -125,13 +113,15 @@ export function Charts() {
         return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
       });
 
+      // Only real income (not transfers)
       const income = monthMovements
         .filter((m) => m.type === 'income')
         .reduce((sum, m) => sum + Number(m.amount), 0);
 
+      // Expenses use personal_amount for category accuracy
       const expenses = monthMovements
         .filter((m) => m.type === 'expense')
-        .reduce((sum, m) => sum + Number(m.amount), 0);
+        .reduce((sum, m) => sum + Number(m.personal_amount ?? m.amount), 0);
 
       const savingsDeposits = monthMovements
         .filter((m) => m.type === 'savings' && !m.is_withdrawal && !m.is_initial_savings)
@@ -141,23 +131,27 @@ export function Charts() {
         .filter((m) => m.type === 'savings' && m.is_withdrawal)
         .reduce((sum, m) => sum + Number(m.amount), 0);
 
+      const transfers = monthMovements
+        .filter((m) => m.type === 'transfer')
+        .reduce((sum, m) => sum + Number(m.amount), 0);
+
       const netSavings = savingsDeposits - savingsWithdrawals;
-      const remainder = income - expenses - netSavings;
+      const remainder = income + transfers - expenses - netSavings;
 
       return {
         month: format(month, 'MMM yy', { locale: es }),
         Ingresos: income,
         Gastos: expenses,
+        Transferencias: transfers,
         'Ahorro Neto': netSavings,
         Sobrante: remainder,
       };
     });
   }, [movements]);
 
-  // Savings split: ARS vs USD
+  // Savings split
   const savingsTrend = useMemo(() => {
     if (movements.length === 0) return [];
-
     const savingsMovements = movements.filter(m => m.type === 'savings');
     if (savingsMovements.length === 0) return [];
 
@@ -176,15 +170,12 @@ export function Charts() {
         return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
       });
 
-      // ARS savings (currency = ARS)
       const arsDeposits = monthMovements
         .filter(m => m.currency === 'ARS' && !m.is_withdrawal)
         .reduce((sum, m) => sum + Number(m.amount), 0);
       const arsWithdrawals = monthMovements
         .filter(m => m.currency === 'ARS' && m.is_withdrawal)
         .reduce((sum, m) => sum + Number(m.amount), 0);
-
-      // USD savings (currency = USD) - use original_amount for USD value
       const usdDeposits = monthMovements
         .filter(m => m.currency === 'USD' && !m.is_withdrawal)
         .reduce((sum, m) => sum + Number(m.original_amount || m.amount), 0);
@@ -212,6 +203,7 @@ export function Charts() {
       <Card className="glass-card">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Gastos Semanales — {format(new Date(), 'MMMM yyyy', { locale: es })}</CardTitle>
+          <p className="text-xs text-muted-foreground">Solo tu parte en gastos compartidos</p>
         </CardHeader>
         <CardContent>
           {weeklyExpenses.length === 0 || weeklyExpenses.every(w => w.Total === 0) ? (
@@ -239,7 +231,7 @@ export function Charts() {
         </CardContent>
       </Card>
 
-      {/* Monthly Trend with Remainder */}
+      {/* Monthly Trend */}
       <Card className="glass-card">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Evolución Mensual</CardTitle>
@@ -264,6 +256,7 @@ export function Charts() {
                     <Legend />
                     <Bar dataKey="Ingresos" fill="hsl(160, 60%, 65%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Gastos" fill="hsl(350, 70%, 70%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Transferencias" fill="hsl(270, 60%, 70%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Ahorro Neto" fill="hsl(200, 80%, 70%)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Sobrante" fill="hsl(45, 90%, 65%)" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -284,6 +277,7 @@ export function Charts() {
                     <Legend />
                     <Line type="monotone" dataKey="Ingresos" stroke="hsl(160, 60%, 65%)" strokeWidth={2} dot={{ r: 4 }} />
                     <Line type="monotone" dataKey="Gastos" stroke="hsl(350, 70%, 70%)" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="Transferencias" stroke="hsl(270, 60%, 70%)" strokeWidth={2} dot={{ r: 4 }} />
                     <Line type="monotone" dataKey="Ahorro Neto" stroke="hsl(200, 80%, 70%)" strokeWidth={2} dot={{ r: 4 }} />
                     <Line type="monotone" dataKey="Sobrante" stroke="hsl(45, 90%, 65%)" strokeWidth={2} dot={{ r: 4 }} />
                   </LineChart>
@@ -294,7 +288,7 @@ export function Charts() {
         </CardContent>
       </Card>
 
-      {/* Savings: ARS vs USD */}
+      {/* Savings */}
       <Card className="glass-card">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Ahorros: Pesos vs Dólares</CardTitle>

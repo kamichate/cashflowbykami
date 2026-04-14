@@ -22,13 +22,20 @@ export function ExportData() {
   });
 
   const exportCSV = () => {
-    const headers = ['Fecha', 'Tipo', 'Monto', 'Moneda', 'Categoría', 'Detalle', 'Retiro', 'Ahorro Inicial'];
-    const typeMap: Record<string, string> = { income: 'Ingreso', expense: 'Gasto', savings: 'Ahorro' };
+    const headers = ['Fecha', 'Tipo', 'Monto', 'Monto Personal', 'Moneda', 'Categoría', 'Detalle', 'Retiro', 'Ahorro Inicial'];
+    const typeMap: Record<string, string> = {
+      income: 'Ingreso',
+      expense: 'Gasto',
+      savings: 'Ahorro',
+      transfer: 'Transferencia',
+      yield: 'Rendimiento',
+    };
 
     const rows = filteredMovements.map(m => [
       m.date,
       typeMap[m.type] || m.type,
       m.amount,
+      m.personal_amount ?? m.amount,
       m.currency,
       (m as any).category?.name || '',
       m.detail || '',

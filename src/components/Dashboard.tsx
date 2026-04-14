@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import {
   TrendingUp, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
-  History, DollarSign, Crown, AlertCircle, Gem, BarChart3
+  History, DollarSign, Crown, AlertCircle, Gem, Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAllMovements, Category } from '@/hooks/useMovements';
@@ -31,25 +31,29 @@ export function Dashboard() {
       return { month: date.getMonth(), year: date.getFullYear() };
     };
 
-    // Previous months
+    // Helper: calculate balance contribution of a movement
+    // Balance = income + transfers - expenses - savings_deposited + savings_withdrawn
+    // Yields do NOT affect balance
+    const getBalanceImpact = (m: any): number => {
+      const amt = Number(m.amount);
+      switch (m.type) {
+        case 'income': return amt;
+        case 'transfer': return amt;
+        case 'expense': return -amt;
+        case 'savings':
+          if (m.is_initial_savings) return 0;
+          return m.is_withdrawal ? amt : -amt;
+        case 'yield': return 0;
+        default: return 0;
+      }
+    };
+
+    // Previous months balance
     const previousMonthsMovements = movements.filter((m) => {
       const { month, year } = getMonthYear(m.date);
       return year < currentYear || (year === currentYear && month < currentMonth);
     });
-
-    const prevIncome = previousMonthsMovements
-      .filter((m) => m.type === 'income')
-      .reduce((sum, m) => sum + Number(m.amount), 0);
-    const prevExpense = previousMonthsMovements
-      .filter((m) => m.type === 'expense')
-      .reduce((sum, m) => sum + Number(m.amount), 0);
-    const prevSavingsDeducted = previousMonthsMovements
-      .filter((m) => m.type === 'savings' && !m.is_withdrawal && !m.is_initial_savings)
-      .reduce((sum, m) => sum + Number(m.amount), 0);
-    const prevSavingsWithdrawals = previousMonthsMovements
-      .filter((m) => m.type === 'savings' && m.is_withdrawal)
-      .reduce((sum, m) => sum + Number(m.amount), 0);
-    const previousBalance = prevIncome - prevExpense - prevSavingsDeducted + prevSavingsWithdrawals;
+    const previousBalance = previousMonthsMovements.reduce((sum, m) => sum + getBalanceImpact(m), 0);
 
     // Current month
     const monthlyMovements = movements.filter((m) => {
@@ -63,17 +67,11 @@ export function Dashboard() {
     const expense = monthlyMovements
       .filter((m) => m.type === 'expense')
       .reduce((sum, m) => sum + Number(m.amount), 0);
-    const savingsDeducted = monthlyMovements
-      .filter((m) => m.type === 'savings' && !m.is_withdrawal && !m.is_initial_savings)
-      .reduce((sum, m) => sum + Number(m.amount), 0);
-    const savingsWithdrawals = monthlyMovements
-      .filter((m) => m.type === 'savings' && m.is_withdrawal)
-      .reduce((sum, m) => sum + Number(m.amount), 0);
-
-    const monthBalance = income - expense - savingsDeducted + savingsWithdrawals;
+    
+    const monthBalance = monthlyMovements.reduce((sum, m) => sum + getBalanceImpact(m), 0);
     const totalBalance = previousBalance + monthBalance;
 
-    // Savings totals
+    // Savings totals (deposits - withdrawals, including initial)
     const allSavingsDeposits = movements
       .filter((m) => m.type === 'savings' && !m.is_withdrawal)
       .reduce((sum, m) => sum + Number(m.amount), 0);
@@ -82,7 +80,12 @@ export function Dashboard() {
       .reduce((sum, m) => sum + Number(m.amount), 0);
     const totalSavingsARS = allSavingsDeposits - allSavingsWithdrawals;
 
-    // USD savings (original amounts)
+    // Yields (accumulate in savings section)
+    const totalYields = movements
+      .filter((m) => m.type === 'yield')
+      .reduce((sum, m) => sum + Number(m.amount), 0);
+
+    // USD savings
     const usdDeposits = movements
       .filter((m) => m.type === 'savings' && !m.is_withdrawal && m.currency === 'USD')
       .reduce((sum, m) => sum + Number(m.original_amount || 0), 0);
@@ -91,7 +94,7 @@ export function Dashboard() {
       .reduce((sum, m) => sum + Number(m.original_amount || 0), 0);
     const totalUsdSavings = usdDeposits - usdWithdrawals;
 
-    // ARS-only savings (exclude USD from ARS total to avoid double counting)
+    // ARS-only savings
     const arsOnlyDeposits = movements
       .filter((m) => m.type === 'savings' && !m.is_withdrawal && m.currency !== 'USD')
       .reduce((sum, m) => sum + Number(m.amount), 0);
@@ -100,19 +103,21 @@ export function Dashboard() {
       .reduce((sum, m) => sum + Number(m.amount), 0);
     const totalArsSavings = arsOnlyDeposits - arsOnlyWithdrawals;
 
-    // Top expense category this month
+    // Top expense category this month - use personal_amount for shared expenses
     const expenseByCat = new Map<string, { name: string; total: number }>();
     monthlyMovements
       .filter((m) => m.type === 'expense' && m.category)
       .forEach((m) => {
         const cat = m.category as Category;
         const prev = expenseByCat.get(cat.id) || { name: cat.name, total: 0 };
-        prev.total += Number(m.amount);
+        // Use personal_amount if set, otherwise full amount
+        const catAmount = Number(m.personal_amount ?? m.amount);
+        prev.total += catAmount;
         expenseByCat.set(cat.id, prev);
       });
     const topExpense = [...expenseByCat.values()].sort((a, b) => b.total - a.total)[0];
 
-    // Top income category this month
+    // Top income category (exclude transfers)
     const incomeByCat = new Map<string, { name: string; total: number }>();
     monthlyMovements
       .filter((m) => m.type === 'income' && m.category)
@@ -124,13 +129,13 @@ export function Dashboard() {
       });
     const topIncome = [...incomeByCat.values()].sort((a, b) => b.total - a.total)[0];
 
-    // Patrimonio = Balance + Ahorros (no pending money)
-    const patrimonio = totalBalance + totalSavingsARS;
+    // Patrimonio = Balance + Ahorros + Rendimientos
+    const patrimonio = totalBalance + totalSavingsARS + totalYields;
 
     return {
       income, expense, totalBalance, previousBalance,
       totalSavingsARS, totalUsdSavings, totalArsSavings,
-      topExpense, topIncome, patrimonio,
+      totalYields, topExpense, topIncome, patrimonio,
     };
   }, [movements]);
 
@@ -153,7 +158,7 @@ export function Dashboard() {
                 {formatCurrency(stats.patrimonio)}
               </p>
               <p className="text-[10px] text-muted-foreground mt-1">
-                Balance + Ahorros
+                Balance + Ahorros + Rendimientos
               </p>
             </div>
             <div className="p-3 rounded-full bg-primary/10">
@@ -163,9 +168,8 @@ export function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Balance + Stats */}
+      {/* Balance + Pending */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Balance */}
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -191,7 +195,6 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Pending Money */}
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -260,7 +263,7 @@ export function Dashboard() {
               <div className="flex items-center justify-between p-2.5 rounded-lg bg-expense-light/50">
                 <div className="flex items-center gap-2">
                   <Wallet className="w-3.5 h-3.5 text-expense" />
-                  <span className="text-xs text-muted-foreground">Mayor gasto</span>
+                  <span className="text-xs text-muted-foreground">Mayor gasto (mi parte)</span>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-medium">{stats.topExpense.name}</p>
@@ -272,7 +275,7 @@ export function Dashboard() {
         </Card>
       )}
 
-      {/* Savings Breakdown */}
+      {/* Savings + Yields */}
       <Card className="glass-card">
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -297,10 +300,21 @@ export function Dashboard() {
               </p>
             </div>
           </div>
+          {stats.totalYields > 0 && (
+            <div className="mt-3 p-2.5 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                <p className="text-xs text-muted-foreground">Rendimientos acumulados</p>
+              </div>
+              <p className="text-sm font-bold text-primary">
+                {formatCurrency(stats.totalYields)}
+              </p>
+            </div>
+          )}
           <div className="mt-3 p-2.5 rounded-lg bg-muted/30 text-center">
             <p className="text-[10px] text-muted-foreground">Total en ARS equivalente</p>
             <p className="text-base font-bold text-savings">
-              {formatCurrency(stats.totalSavingsARS)}
+              {formatCurrency(stats.totalSavingsARS + stats.totalYields)}
             </p>
           </div>
         </CardContent>

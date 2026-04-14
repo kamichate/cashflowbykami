@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Trash2, Users, DollarSign, Check, X } from 'lucide-react';
 import {
@@ -12,8 +13,8 @@ import {
   useRegisterPayment,
   useDeleteSharedExpense,
   usePeople,
-  useAddPerson,
 } from '@/hooks/useSharedExpenses';
+import { useCategories } from '@/hooks/useMovements';
 import { formatDateToString, parseDateString } from '@/lib/dateUtils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -64,14 +65,17 @@ export function SharedExpenses() {
 function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const addSharedExpense = useAddSharedExpense();
   const { data: people } = usePeople();
-  const addPerson = useAddPerson();
+  const { data: categories = [] } = useCategories();
 
   const [description, setDescription] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [date, setDate] = useState(formatDateToString(new Date()));
+  const [categoryId, setCategoryId] = useState('');
   const [participants, setParticipants] = useState<{ person_name: string; amount_owed: number }[]>([]);
   const [newPersonName, setNewPersonName] = useState('');
   const [splitEqual, setSplitEqual] = useState(true);
+
+  const expenseCategories = categories.filter(c => c.type === 'expense');
 
   const addParticipant = (name: string) => {
     if (!name.trim() || participants.find((p) => p.person_name === name)) return;
@@ -79,13 +83,8 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
     setNewPersonName('');
   };
 
-  const removeParticipant = (name: string) => {
-    setParticipants(participants.filter((p) => p.person_name !== name));
-  };
-
   const recalcEqualSplit = (total: number, parts: typeof participants) => {
     if (!splitEqual || parts.length === 0) return parts;
-    // Split among participants (not including you)
     const each = Math.round((total / (parts.length + 1)) * 100) / 100;
     return parts.map((p) => ({ ...p, amount_owed: each }));
   };
@@ -110,6 +109,7 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
       total_amount: total,
       description: description || undefined,
       date,
+      category_id: categoryId || undefined,
       participants: finalParticipants,
     });
     onSuccess();
@@ -134,6 +134,21 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
           onChange={(e) => handleTotalChange(e.target.value)}
           placeholder="0"
         />
+      </div>
+
+      <div>
+        <Label>Categoría de gasto</Label>
+        <Select value={categoryId} onValueChange={setCategoryId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Seleccionar categoría" />
+          </SelectTrigger>
+          <SelectContent>
+            {expenseCategories.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-1">Solo tu parte se contará en esta categoría</p>
       </div>
 
       <div>
@@ -172,7 +187,6 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
           </Button>
         </div>
 
-        {/* Quick add from existing people */}
         {people && people.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {people
@@ -196,6 +210,16 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
                   + {p.name}
                 </Button>
               ))}
+          </div>
+        )}
+
+        {participants.length > 0 && (
+          <div className="p-2 rounded-lg bg-muted/30 mb-2">
+            <p className="text-xs text-muted-foreground">
+              Tu parte: ${(
+                (parseFloat(totalAmount) || 0) - participants.reduce((s, p) => s + p.amount_owed, 0)
+              ).toLocaleString('es-AR')}
+            </p>
           </div>
         )}
 
@@ -274,6 +298,7 @@ function SharedExpenseCard({
   const totalOwed = expense.participants.reduce((s, p) => s + p.amount_owed, 0);
   const totalPaid = expense.participants.reduce((s, p) => s + p.amount_paid, 0);
   const allSettled = expense.participants.every((p) => p.is_settled);
+  const myShare = expense.total_amount - totalOwed;
 
   const handlePay = async (participantId: string) => {
     const amount = parseFloat(payAmounts[participantId] || '0');
@@ -309,7 +334,12 @@ function SharedExpenseCard({
             </Button>
           </div>
         </div>
-        <p className="text-lg font-bold">${expense.total_amount.toLocaleString('es-AR')}</p>
+        <div className="flex items-center gap-3">
+          <p className="text-lg font-bold">${expense.total_amount.toLocaleString('es-AR')}</p>
+          <p className="text-xs text-muted-foreground">
+            (mi parte: ${myShare.toLocaleString('es-AR')})
+          </p>
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-2">
