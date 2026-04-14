@@ -51,6 +51,7 @@ export type Database = {
           is_initial_savings: boolean
           is_withdrawal: boolean
           original_amount: number | null
+          personal_amount: number | null
           type: Database["public"]["Enums"]["movement_type"]
           updated_at: string
           user_id: string
@@ -67,6 +68,7 @@ export type Database = {
           is_initial_savings?: boolean
           is_withdrawal?: boolean
           original_amount?: number | null
+          personal_amount?: number | null
           type: Database["public"]["Enums"]["movement_type"]
           updated_at?: string
           user_id: string
@@ -83,6 +85,7 @@ export type Database = {
           is_initial_savings?: boolean
           is_withdrawal?: boolean
           original_amount?: number | null
+          personal_amount?: number | null
           type?: Database["public"]["Enums"]["movement_type"]
           updated_at?: string
           user_id?: string
@@ -282,7 +285,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      movement_type: "income" | "expense" | "savings"
+      movement_type: "income" | "expense" | "savings" | "transfer" | "yield"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -410,7 +413,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      movement_type: ["income", "expense", "savings"],
+      movement_type: ["income", "expense", "savings", "transfer", "yield"],
     },
   },
 } as const
