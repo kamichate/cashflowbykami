@@ -80,7 +80,7 @@ export function EditMovementDialog({ movement, open, onOpenChange }: EditMovemen
         id: movement.id,
         date: formatDateToString(date),
         type,
-        category_id: needsCategory ? categoryId : (categories.find(c => c.type === 'income')?.id || categoryId),
+        category_id: needsCategory ? categoryId : null,
         detail: detail.trim() || null,
         amount: parseFloat(amount),
         is_withdrawal: type === 'savings' ? isWithdrawal : false,
