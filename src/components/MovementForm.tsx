@@ -307,7 +307,7 @@ export function MovementForm() {
             <div className="space-y-2">
               <Label>
                 Monto {isUsd ? '(USD)' : '($)'}
-                {isUsd && !isInitialSavings && (
+                {isUsd && type === 'savings' && !isInitialSavings && !isWithdrawal && (
                   <span className="text-xs text-muted-foreground ml-2">
                     Se pedirá cotización al confirmar
                   </span>
