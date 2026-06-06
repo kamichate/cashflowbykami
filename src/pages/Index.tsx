@@ -11,6 +11,7 @@ import { CategoryManager } from '@/components/CategoryManager';
 import { SharedExpenses } from '@/components/SharedExpenses';
 import { PendingMoney } from '@/components/PendingMoney';
 import { PendingPayments } from '@/components/PendingPayments';
+import { PendingIncomeComponent } from '@/components/PendingIncome';
 import { Notifications } from '@/components/Notifications';
 import { ExportData } from '@/components/ExportData';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,6 +65,7 @@ export default function Index() {
 
       {currentTab === 'payments' && (
         <div className="space-y-6 pb-20 lg:pb-6">
+          <PendingIncomeComponent />
           <PendingPayments />
         </div>
       )}
