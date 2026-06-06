@@ -298,7 +298,11 @@ export function MovementsList() {
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-medium truncate">
-                              {mov.category?.name || 'Sin categoría'}
+                              {mov.type === 'transfer'
+                                ? 'Transferencia'
+                                : mov.type === 'yield'
+                                  ? (mov.category?.name || 'Rendimiento')
+                                  : (mov.category?.name || 'Sin categoría')}
                             </p>
                             {isInitialSavings && (
                               <Badge variant="outline" className="text-[10px] h-4 px-1 text-muted-foreground border-muted-foreground/30">
