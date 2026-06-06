@@ -70,7 +70,7 @@ export function MovementForm() {
 
     const parsedAmount = parseFloat(amount);
 
-    if (type === 'savings' && isUsd && !isInitialSavings) {
+    if (type === 'savings' && isUsd && !isInitialSavings && !isWithdrawal) {
       setPendingSubmit({ usdAmount: parsedAmount, isWithdrawal });
       setShowExchangeDialog(true);
       return;
@@ -92,7 +92,7 @@ export function MovementForm() {
       {
         date: formatDateToString(date),
         type,
-        category_id: needsCategory ? categoryId : categories.find(c => c.type === 'income')?.id || categoryId,
+        category_id: needsCategory ? categoryId : null,
         detail: detail.trim() || undefined,
         amount: options.amount,
         is_withdrawal: type === 'savings' ? isWithdrawal : false,
