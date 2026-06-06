@@ -180,9 +180,8 @@ export function useAddMovement() {
       queryClient.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Movimiento agregado');
     },
-    onError: (error) => {
+    onError: () => {
       toast.error('Error al agregar movimiento');
-      console.error(error);
     },
   });
 }
@@ -209,9 +208,8 @@ export function useUpdateMovement() {
       queryClient.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Movimiento actualizado');
     },
-    onError: (error) => {
+    onError: () => {
       toast.error('Error al actualizar movimiento');
-      console.error(error);
     },
   });
 }
@@ -233,9 +231,8 @@ export function useDeleteMovement() {
       queryClient.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Movimiento eliminado');
     },
-    onError: (error) => {
+    onError: () => {
       toast.error('Error al eliminar movimiento');
-      console.error(error);
     },
   });
 }
@@ -266,10 +263,10 @@ export function useAddCategory() {
       toast.success('Categoría agregada');
     },
     onError: (error: any) => {
-      if (error.code === '23505') {
+      if (error?.code === '23505') {
         toast.error('Esta categoría ya existe');
       } else {
-        toast.error('Error al agregar categoría');
+        toast.error('No se pudo agregar la categoría');
       }
     },
   });
@@ -292,9 +289,8 @@ export function useDeleteCategory() {
       queryClient.invalidateQueries({ queryKey: ['movements'] });
       toast.success('Categoría eliminada');
     },
-    onError: (error) => {
-      toast.error('Error al eliminar categoría');
-      console.error(error);
+    onError: () => {
+      toast.error('No se pudo eliminar la categoría');
     },
   });
 }
