@@ -82,7 +82,7 @@ export function PendingPayments() {
     addMovement.mutate({
       date: formatDateToString(new Date()),
       type: 'expense',
-      category_id: payment.category_id || '',
+      category_id: payment.category_id || undefined,
       detail: `Pago: ${payment.description}`,
       amount: Number(payment.amount),
     });
