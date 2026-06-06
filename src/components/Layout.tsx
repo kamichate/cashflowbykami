@@ -14,7 +14,7 @@ interface LayoutProps {
 const navItems = [
   { id: 'home', label: 'Inicio', icon: Home },
   { id: 'shared', label: 'Compartidos', icon: Users },
-  { id: 'payments', label: 'A Pagar', icon: CreditCard },
+  { id: 'payments', label: 'Pendientes', icon: CreditCard },
   { id: 'summary', label: 'Resumen', icon: BarChart3 },
   { id: 'settings', label: 'Categorías', icon: Settings },
 ];
