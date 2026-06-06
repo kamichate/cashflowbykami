@@ -65,6 +65,7 @@ export default function Index() {
 
       {currentTab === 'payments' && (
         <div className="space-y-6 pb-20 lg:pb-6">
+          <PendingIncomeComponent />
           <PendingPayments />
         </div>
       )}
