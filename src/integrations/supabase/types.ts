@@ -100,6 +100,53 @@ export type Database = {
           },
         ]
       }
+      pending_income: {
+        Row: {
+          amount: number
+          category_id: string | null
+          collected_at: string | null
+          created_at: string
+          description: string
+          due_date: string
+          id: string
+          is_collected: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          collected_at?: string | null
+          created_at?: string
+          description: string
+          due_date: string
+          id?: string
+          is_collected?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          collected_at?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string
+          id?: string
+          is_collected?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_income_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_payments: {
         Row: {
           amount: number
