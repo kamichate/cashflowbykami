@@ -35,7 +35,7 @@ export interface Movement {
 export interface NewMovement {
   date: string;
   type: MovementType;
-  category_id: string;
+  category_id?: string | null;
   detail?: string;
   amount: number;
   is_withdrawal?: boolean;
@@ -50,7 +50,7 @@ export interface UpdateMovement {
   id: string;
   date?: string;
   type?: MovementType;
-  category_id?: string;
+  category_id?: string | null;
   detail?: string | null;
   amount?: number;
   is_withdrawal?: boolean;
