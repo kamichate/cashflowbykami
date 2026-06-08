@@ -247,11 +247,23 @@ export function useDeleteSharedExpense() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Fetch the shared expense to get the associated movement_id
+      const { data: se, error: getErr } = await supabase
+        .from('shared_expenses')
+        .select('movement_id')
+        .eq('id', id)
+        .single();
+      if (getErr) throw getErr;
+
       const { error } = await supabase
         .from('shared_expenses')
         .delete()
         .eq('id', id);
       if (error) throw error;
+
+      if (se?.movement_id) {
+        await supabase.from('movements').delete().eq('id', se.movement_id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shared-expenses'] });
