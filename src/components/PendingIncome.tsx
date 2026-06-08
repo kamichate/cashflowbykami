@@ -160,7 +160,7 @@ export function PendingIncomeComponent() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button onClick={handleAdd} className="w-full" disabled={addIncome.isPending}>
+                    <Button onClick={handleAdd} className="w-full" disabled={addIncome.isPending || !amount || parseFloat(amount) <= 0 || !description || !dueDate}>
                       Agregar Ingreso
                     </Button>
                   </div>
