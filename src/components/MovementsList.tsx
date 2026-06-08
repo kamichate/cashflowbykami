@@ -13,6 +13,17 @@ import { useMovements, useDeleteMovement, useCategories, MovementType, MovementF
 import { EditMovementDialog } from './EditMovementDialog';
 import { parseDateString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const typeConfig: Record<MovementType, { icon: any; color: string; bgColor: string; sign: string; label: string }> = {
   income: {
