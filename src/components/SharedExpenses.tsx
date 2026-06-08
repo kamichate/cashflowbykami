@@ -339,14 +339,32 @@ function SharedExpenseCard({
             <Badge variant={allSettled ? 'default' : 'secondary'} className="text-xs">
               {allSettled ? 'Saldado' : `$${(totalOwed - totalPaid).toLocaleString('es-AR')} pendiente`}
             </Badge>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-              onClick={() => deleteSharedExpense.mutate(expense.id)}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  disabled={deleteSharedExpense.isPending}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar este gasto compartido?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    También se eliminará el movimiento asociado. Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteSharedExpense.mutate(expense.id)}>
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
         <div className="flex items-center gap-3">
