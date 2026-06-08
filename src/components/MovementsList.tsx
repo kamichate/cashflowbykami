@@ -277,6 +277,11 @@ export function MovementsList() {
                   </Popover>
                 </div>
               </div>
+              {dateRangeInvalid && (
+                <p className="text-xs text-destructive mt-2">
+                  La fecha de inicio no puede ser posterior a la fecha de fin
+                </p>
+              )}
             </div>
           )}
         </CardHeader>
