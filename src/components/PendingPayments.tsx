@@ -1,7 +1,16 @@
 import { useState } from 'react';
-import { format, parseISO, isAfter, isBefore, addDays, isToday } from 'date-fns';
+import { format, parseISO, isAfter, isBefore, addDays, addMonths, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CalendarIcon, Plus, Check, Trash2, Clock, AlertTriangle, CalendarCheck } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +62,9 @@ export function PendingPayments() {
   const [categoryId, setCategoryId] = useState('none');
   const [isRecurring, setIsRecurring] = useState(false);
   const [showPaid, setShowPaid] = useState(false);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [scheduledPayment, setScheduledPayment] = useState<PendingPayment | null>(null);
+  const [nextDueDate, setNextDueDate] = useState<Date | undefined>(undefined);
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
 
@@ -77,14 +89,36 @@ export function PendingPayments() {
   };
 
   const handleMarkPaid = (payment: PendingPayment) => {
-    markPaid.mutate(payment.id);
-    // Create expense movement
-    addMovement.mutate({
-      date: formatDateToString(new Date()),
-      type: 'expense',
-      category_id: payment.category_id || undefined,
-      detail: `Pago: ${payment.description}`,
-      amount: Number(payment.amount),
+    markPaid.mutate(payment.id, {
+      onSuccess: () => {
+        addMovement.mutate({
+          date: formatDateToString(new Date()),
+          type: 'expense',
+          category_id: payment.category_id || undefined,
+          detail: `Pago: ${payment.description}`,
+          amount: Number(payment.amount),
+        });
+        setScheduledPayment(payment);
+        setNextDueDate(addMonths(parseISO(payment.due_date), 1));
+        setScheduleDialogOpen(true);
+      },
+    });
+  };
+
+  const handleScheduleNext = () => {
+    if (!scheduledPayment || !nextDueDate) return;
+    addPayment.mutate({
+      description: scheduledPayment.description,
+      amount: Number(scheduledPayment.amount),
+      due_date: formatDateToString(nextDueDate),
+      category_id: scheduledPayment.category_id || undefined,
+      is_recurring: false,
+    }, {
+      onSuccess: () => {
+        setScheduleDialogOpen(false);
+        setScheduledPayment(null);
+        setNextDueDate(undefined);
+      },
     });
   };
 
@@ -229,6 +263,35 @@ export function PendingPayments() {
           )}
         </CardContent>
       </Card>
+
+      {/* Schedule next payment dialog */}
+      <AlertDialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Querés programar el próximo vencimiento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Seleccioná la fecha para la próxima cuota de <strong>{scheduledPayment?.description}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !nextDueDate && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {nextDueDate ? format(nextDueDate, 'PPP', { locale: es }) : 'Seleccionar fecha'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={nextDueDate} onSelect={setNextDueDate} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setScheduledPayment(null); setNextDueDate(undefined); }}>No, gracias</AlertDialogCancel>
+            <Button onClick={handleScheduleNext} disabled={!nextDueDate || addPayment.isPending}>Programar</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
