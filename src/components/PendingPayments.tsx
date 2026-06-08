@@ -144,6 +144,9 @@ export function PendingPayments() {
                     <div>
                       <Label>Monto</Label>
                       <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
+                      {amount !== '' && parseFloat(amount) <= 0 && (
+                        <p className="text-xs text-destructive mt-1">El monto debe ser mayor a cero</p>
+                      )}
                     </div>
                     <div>
                       <Label>Fecha de vencimiento</Label>
