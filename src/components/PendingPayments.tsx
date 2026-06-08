@@ -263,6 +263,35 @@ export function PendingPayments() {
           )}
         </CardContent>
       </Card>
+
+      {/* Schedule next payment dialog */}
+      <AlertDialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Querés programar el próximo vencimiento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Seleccioná la fecha para la próxima cuota de <strong>{scheduledPayment?.description}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !nextDueDate && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {nextDueDate ? format(nextDueDate, 'PPP', { locale: es }) : 'Seleccionar fecha'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={nextDueDate} onSelect={setNextDueDate} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setScheduledPayment(null); setNextDueDate(undefined); }}>No, gracias</AlertDialogCancel>
+            <Button onClick={handleScheduleNext} disabled={!nextDueDate || addPayment.isPending}>Programar</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
