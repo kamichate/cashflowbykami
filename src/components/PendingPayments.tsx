@@ -89,14 +89,36 @@ export function PendingPayments() {
   };
 
   const handleMarkPaid = (payment: PendingPayment) => {
-    markPaid.mutate(payment.id);
-    // Create expense movement
-    addMovement.mutate({
-      date: formatDateToString(new Date()),
-      type: 'expense',
-      category_id: payment.category_id || undefined,
-      detail: `Pago: ${payment.description}`,
-      amount: Number(payment.amount),
+    markPaid.mutate(payment.id, {
+      onSuccess: () => {
+        addMovement.mutate({
+          date: formatDateToString(new Date()),
+          type: 'expense',
+          category_id: payment.category_id || undefined,
+          detail: `Pago: ${payment.description}`,
+          amount: Number(payment.amount),
+        });
+        setScheduledPayment(payment);
+        setNextDueDate(addMonths(parseISO(payment.due_date), 1));
+        setScheduleDialogOpen(true);
+      },
+    });
+  };
+
+  const handleScheduleNext = () => {
+    if (!scheduledPayment || !nextDueDate) return;
+    addPayment.mutate({
+      description: scheduledPayment.description,
+      amount: Number(scheduledPayment.amount),
+      due_date: formatDateToString(nextDueDate),
+      category_id: scheduledPayment.category_id || undefined,
+      is_recurring: false,
+    }, {
+      onSuccess: () => {
+        setScheduleDialogOpen(false);
+        setScheduledPayment(null);
+        setNextDueDate(undefined);
+      },
     });
   };
 
