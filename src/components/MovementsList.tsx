@@ -70,10 +70,11 @@ export function MovementsList() {
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
 
   const { data: categories = [] } = useCategories();
+  const dateRangeInvalid = !!(dateRange.start && dateRange.end && dateRange.start > dateRange.end);
   const { data: movements = [], isLoading } = useMovements({
     ...filters,
-    startDate: dateRange.start,
-    endDate: dateRange.end,
+    startDate: dateRangeInvalid ? undefined : dateRange.start,
+    endDate: dateRangeInvalid ? undefined : dateRange.end,
   });
   const deleteMovement = useDeleteMovement();
 
