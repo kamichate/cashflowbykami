@@ -267,6 +267,8 @@ export function useDeleteSharedExpense() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shared-expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['movements'] });
+      queryClient.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Gasto compartido eliminado');
     },
     onError: () => toast.error('Error al eliminar'),
