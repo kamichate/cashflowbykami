@@ -322,6 +322,9 @@ export function MovementForm() {
                 onChange={(e) => setAmount(e.target.value)}
                 className="text-lg font-semibold"
               />
+              {amount !== '' && parseFloat(amount) <= 0 && (
+                <p className="text-xs text-destructive">El monto debe ser mayor a cero</p>
+              )}
             </div>
 
             {/* Detail */}
@@ -339,7 +342,7 @@ export function MovementForm() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={(needsCategory && !categoryId) || !amount || addMovement.isPending}
+              disabled={(needsCategory && !categoryId) || !amount || parseFloat(amount) <= 0 || addMovement.isPending}
             >
               <Plus className="w-4 h-4 mr-2" />
               {getButtonText()}
