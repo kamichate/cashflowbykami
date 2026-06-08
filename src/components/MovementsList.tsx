@@ -13,6 +13,17 @@ import { useMovements, useDeleteMovement, useCategories, MovementType, MovementF
 import { EditMovementDialog } from './EditMovementDialog';
 import { parseDateString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const typeConfig: Record<MovementType, { icon: any; color: string; bgColor: string; sign: string; label: string }> = {
   income: {
@@ -59,10 +70,11 @@ export function MovementsList() {
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
 
   const { data: categories = [] } = useCategories();
+  const dateRangeInvalid = !!(dateRange.start && dateRange.end && dateRange.start > dateRange.end);
   const { data: movements = [], isLoading } = useMovements({
     ...filters,
-    startDate: dateRange.start,
-    endDate: dateRange.end,
+    startDate: dateRangeInvalid ? undefined : dateRange.start,
+    endDate: dateRangeInvalid ? undefined : dateRange.end,
   });
   const deleteMovement = useDeleteMovement();
 
@@ -265,6 +277,11 @@ export function MovementsList() {
                   </Popover>
                 </div>
               </div>
+              {dateRangeInvalid && (
+                <p className="text-xs text-destructive mt-2">
+                  La fecha de inicio no puede ser posterior a la fecha de fin
+                </p>
+              )}
             </div>
           )}
         </CardHeader>
@@ -341,15 +358,32 @@ export function MovementsList() {
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => deleteMovement.mutate(mov.id)}
-                          disabled={deleteMovement.isPending}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              disabled={deleteMovement.isPending}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar este movimiento?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteMovement.mutate(mov.id)}>
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   );

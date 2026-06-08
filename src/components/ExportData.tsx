@@ -15,7 +15,9 @@ export function ExportData() {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
 
-  const filteredMovements = movements.filter(m => {
+  const dateRangeInvalid = !!(startDate && endDate && startDate > endDate);
+
+  const filteredMovements = dateRangeInvalid ? [] : movements.filter(m => {
     if (startDate && m.date < formatDateToString(startDate)) return false;
     if (endDate && m.date > formatDateToString(endDate)) return false;
     return true;
@@ -93,6 +95,12 @@ export function ExportData() {
           </div>
         </div>
 
+        {dateRangeInvalid && (
+          <p className="text-xs text-destructive">
+            La fecha de inicio no puede ser posterior a la fecha de fin
+          </p>
+        )}
+
         {(startDate || endDate) && (
           <Button variant="ghost" size="sm" onClick={() => { setStartDate(undefined); setEndDate(undefined); }}>
             Limpiar filtros
@@ -103,7 +111,7 @@ export function ExportData() {
           <span className="text-sm">{filteredMovements.length} movimientos</span>
         </div>
 
-        <Button onClick={exportCSV} className="w-full" disabled={filteredMovements.length === 0}>
+        <Button onClick={exportCSV} className="w-full" disabled={filteredMovements.length === 0 || dateRangeInvalid}>
           <Download className="w-4 h-4 mr-2" />
           Descargar CSV
         </Button>

@@ -6,6 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Users, DollarSign, Check, X } from 'lucide-react';
 import {
   useSharedExpenses,
@@ -262,9 +273,13 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
         ))}
       </div>
 
+      {parseFloat(totalAmount) <= 0 && totalAmount !== '' && (
+        <p className="text-xs text-destructive">El monto debe ser mayor a cero</p>
+      )}
+
       <Button
         onClick={handleSubmit}
-        disabled={addSharedExpense.isPending || !totalAmount || participants.length === 0}
+        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0}
         className="w-full"
       >
         {addSharedExpense.isPending ? 'Guardando...' : 'Registrar gasto compartido'}
@@ -324,14 +339,32 @@ function SharedExpenseCard({
             <Badge variant={allSettled ? 'default' : 'secondary'} className="text-xs">
               {allSettled ? 'Saldado' : `$${(totalOwed - totalPaid).toLocaleString('es-AR')} pendiente`}
             </Badge>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-              onClick={() => deleteSharedExpense.mutate(expense.id)}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  disabled={deleteSharedExpense.isPending}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar este gasto compartido?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    También se eliminará el movimiento asociado. Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteSharedExpense.mutate(expense.id)}>
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
         <div className="flex items-center gap-3">

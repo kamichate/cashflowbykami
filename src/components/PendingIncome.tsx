@@ -130,6 +130,9 @@ export function PendingIncomeComponent() {
                     <div>
                       <Label>Monto</Label>
                       <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
+                      {amount !== '' && parseFloat(amount) <= 0 && (
+                        <p className="text-xs text-destructive mt-1">El monto debe ser mayor a cero</p>
+                      )}
                     </div>
                     <div>
                       <Label>Fecha esperada</Label>
@@ -157,7 +160,7 @@ export function PendingIncomeComponent() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button onClick={handleAdd} className="w-full" disabled={addIncome.isPending}>
+                    <Button onClick={handleAdd} className="w-full" disabled={addIncome.isPending || !amount || parseFloat(amount) <= 0 || !description || !dueDate}>
                       Agregar Ingreso
                     </Button>
                   </div>

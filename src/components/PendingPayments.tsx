@@ -144,6 +144,9 @@ export function PendingPayments() {
                     <div>
                       <Label>Monto</Label>
                       <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
+                      {amount !== '' && parseFloat(amount) <= 0 && (
+                        <p className="text-xs text-destructive mt-1">El monto debe ser mayor a cero</p>
+                      )}
                     </div>
                     <div>
                       <Label>Fecha de vencimiento</Label>
@@ -175,7 +178,7 @@ export function PendingPayments() {
                       <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
                       <Label>Recurrente</Label>
                     </div>
-                    <Button onClick={handleAdd} className="w-full" disabled={addPayment.isPending}>
+                    <Button onClick={handleAdd} className="w-full" disabled={addPayment.isPending || !amount || parseFloat(amount) <= 0 || !description || !dueDate}>
                       Agregar Pago
                     </Button>
                   </div>
