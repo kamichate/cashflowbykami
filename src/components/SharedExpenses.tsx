@@ -273,9 +273,13 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
         ))}
       </div>
 
+      {parseFloat(totalAmount) <= 0 && totalAmount !== '' && (
+        <p className="text-xs text-destructive">El monto debe ser mayor a cero</p>
+      )}
+
       <Button
         onClick={handleSubmit}
-        disabled={addSharedExpense.isPending || !totalAmount || participants.length === 0}
+        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0}
         className="w-full"
       >
         {addSharedExpense.isPending ? 'Guardando...' : 'Registrar gasto compartido'}
