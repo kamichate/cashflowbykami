@@ -62,6 +62,9 @@ export function PendingPayments() {
   const [categoryId, setCategoryId] = useState('none');
   const [isRecurring, setIsRecurring] = useState(false);
   const [showPaid, setShowPaid] = useState(false);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [scheduledPayment, setScheduledPayment] = useState<PendingPayment | null>(null);
+  const [nextDueDate, setNextDueDate] = useState<Date | undefined>(undefined);
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
 
