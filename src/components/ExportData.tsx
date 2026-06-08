@@ -15,7 +15,9 @@ export function ExportData() {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
 
-  const filteredMovements = movements.filter(m => {
+  const dateRangeInvalid = !!(startDate && endDate && startDate > endDate);
+
+  const filteredMovements = dateRangeInvalid ? [] : movements.filter(m => {
     if (startDate && m.date < formatDateToString(startDate)) return false;
     if (endDate && m.date > formatDateToString(endDate)) return false;
     return true;
