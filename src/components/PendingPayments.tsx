@@ -1,7 +1,16 @@
 import { useState } from 'react';
-import { format, parseISO, isAfter, isBefore, addDays, isToday } from 'date-fns';
+import { format, parseISO, isAfter, isBefore, addDays, addMonths, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CalendarIcon, Plus, Check, Trash2, Clock, AlertTriangle, CalendarCheck } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
