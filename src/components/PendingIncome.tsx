@@ -11,6 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useCategories } from '@/hooks/useMovements';
 import { usePendingIncome, useAddPendingIncome, useMarkIncomeCollected, useDeletePendingIncome, PendingIncome } from '@/hooks/usePendingIncome';
 import { formatDateToString } from '@/lib/dateUtils';
@@ -200,9 +211,23 @@ export function PendingIncomeComponent() {
                         <Check className="w-4 h-4 text-[hsl(var(--income))]" />
                       </Button>
                     )}
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => deleteIncome.mutate(income.id)}>
-                      <Trash2 className="w-4 h-4 text-[hsl(var(--expense))]" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8">
+                          <Trash2 className="w-4 h-4 text-[hsl(var(--expense))]" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar este elemento?</AlertDialogTitle>
+                          <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteIncome.mutate(income.id)}>Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               );
