@@ -211,9 +211,23 @@ export function PendingIncomeComponent() {
                         <Check className="w-4 h-4 text-[hsl(var(--income))]" />
                       </Button>
                     )}
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => deleteIncome.mutate(income.id)}>
-                      <Trash2 className="w-4 h-4 text-[hsl(var(--expense))]" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8">
+                          <Trash2 className="w-4 h-4 text-[hsl(var(--expense))]" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar este elemento?</AlertDialogTitle>
+                          <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteIncome.mutate(income.id)}>Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               );
