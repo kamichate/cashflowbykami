@@ -70,6 +70,8 @@ export function EditMovementDialog({ movement, open, onOpenChange }: EditMovemen
     setIsWithdrawal(false);
   };
 
+  const isUsd = movement.currency === 'USD';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (needsCategory && !categoryId) return;
@@ -84,6 +86,13 @@ export function EditMovementDialog({ movement, open, onOpenChange }: EditMovemen
         detail: detail.trim() || null,
         amount: parseFloat(amount),
         is_withdrawal: type === 'savings' ? isWithdrawal : false,
+        ...(isUsd
+          ? {
+              currency: 'USD' as const,
+              exchange_rate: movement.exchange_rate,
+              original_amount: movement.original_amount,
+            }
+          : {}),
       },
       { onSuccess: () => onOpenChange(false) }
     );
