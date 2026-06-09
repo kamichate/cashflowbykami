@@ -192,6 +192,18 @@ export function EditMovementDialog({ movement, open, onOpenChange }: EditMovemen
               onChange={(e) => setAmount(e.target.value)}
               className="text-lg font-semibold"
             />
+            {isUsd && (
+              <div className="rounded-md border border-savings/30 bg-savings-light/40 p-3 text-xs space-y-1">
+                <p className="font-medium text-savings">Movimiento en USD</p>
+                <p className="text-muted-foreground">
+                  Monto original: <span className="font-semibold">US$ {Number(movement.original_amount ?? 0).toFixed(2)}</span>
+                </p>
+                <p className="text-muted-foreground">
+                  Tipo de cambio: <span className="font-semibold">${Number(movement.exchange_rate ?? 0).toFixed(2)}</span>
+                </p>
+                <p className="text-muted-foreground italic">Se preservan al guardar.</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
