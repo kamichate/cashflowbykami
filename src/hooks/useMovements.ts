@@ -54,6 +54,9 @@ export interface UpdateMovement {
   detail?: string | null;
   amount?: number;
   is_withdrawal?: boolean;
+  currency?: 'ARS' | 'USD';
+  exchange_rate?: number | null;
+  original_amount?: number | null;
 }
 
 export function useCategories() {
