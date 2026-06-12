@@ -182,8 +182,8 @@ export function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Balance + Pending */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Balance + Projected + Pending */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -206,6 +206,37 @@ export function Dashboard() {
                 Anterior: {formatCurrency(stats.previousBalance)}
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <LineChart className="w-4 h-4 text-primary" />
+              <p className="text-xs text-muted-foreground">Balance Proyectado</p>
+            </div>
+            <p className={cn(
+              'text-xl font-bold',
+              projectedBalance >= 0 ? 'text-income' : 'text-expense'
+            )}>
+              {formatCurrency(projectedBalance)}
+            </p>
+            {balanceDiff !== 0 && (
+              <p className={cn(
+                'text-[10px] mt-0.5 flex items-center gap-0.5',
+                balanceDiff > 0 ? 'text-income' : 'text-expense'
+              )}>
+                {balanceDiff > 0 ? (
+                  <ArrowUpRight className="w-2.5 h-2.5" />
+                ) : (
+                  <ArrowDownRight className="w-2.5 h-2.5" />
+                )}
+                {formatCurrency(Math.abs(balanceDiff))}
+              </p>
+            )}
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              si cobrás y pagás todo lo pendiente
+            </p>
           </CardContent>
         </Card>
 
