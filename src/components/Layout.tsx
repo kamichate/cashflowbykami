@@ -134,6 +134,8 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
           })}
         </div>
       </nav>
+
+      <FloatingActionButton currentTab={currentTab} />
     </div>
   );
 }
