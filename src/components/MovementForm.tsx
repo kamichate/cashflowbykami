@@ -113,6 +113,7 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
           setAmount('');
           setIsWithdrawal(false);
           setIsInitialSavings(false);
+          onSuccess?.();
         },
       }
     );
