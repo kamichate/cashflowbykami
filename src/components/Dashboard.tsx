@@ -143,6 +143,18 @@ export function Dashboard() {
 
   const totalPending = pendingSummary?.total || 0;
 
+  const { data: pendingPayments = [] } = usePendingPayments();
+  const { data: pendingIncomeList = [] } = usePendingIncome();
+
+  const unpaidPaymentsTotal = pendingPayments
+    .filter((p) => !p.is_paid)
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const uncollectedIncomeTotal = pendingIncomeList
+    .filter((i) => !i.is_collected)
+    .reduce((sum, i) => sum + Number(i.amount), 0);
+  const projectedBalance = stats.totalBalance - unpaidPaymentsTotal + uncollectedIncomeTotal;
+  const balanceDiff = projectedBalance - stats.totalBalance;
+
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Patrimonio Total */}
