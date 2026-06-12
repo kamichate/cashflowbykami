@@ -31,7 +31,12 @@ function isUsdCategory(category: Category | undefined): boolean {
   return USD_CATEGORY_NAMES.includes(category.name.toLowerCase());
 }
 
-export function MovementForm() {
+interface MovementFormProps {
+  onSuccess?: () => void;
+  dialogMode?: boolean;
+}
+
+export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
   const [date, setDate] = useState<Date>(new Date());
   const [type, setType] = useState<MovementType>('expense');
   const [categoryId, setCategoryId] = useState('');
@@ -108,6 +113,7 @@ export function MovementForm() {
           setAmount('');
           setIsWithdrawal(false);
           setIsInitialSavings(false);
+          onSuccess?.();
         },
       }
     );

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
+import { FloatingActionButton } from './FloatingActionButton';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -133,6 +134,8 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
           })}
         </div>
       </nav>
+
+      <FloatingActionButton currentTab={currentTab} />
     </div>
   );
 }
