@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import {
   TrendingUp, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
-  History, DollarSign, Crown, AlertCircle, Gem, Sparkles
+  History, DollarSign, Crown, AlertCircle, Gem, Sparkles, LineChart
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAllMovements, Category } from '@/hooks/useMovements';
 import { usePendingMoneySummary } from '@/hooks/useSharedExpenses';
+import { usePendingPayments } from '@/hooks/usePendingPayments';
+import { usePendingIncome } from '@/hooks/usePendingIncome';
 import { parseDateString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
