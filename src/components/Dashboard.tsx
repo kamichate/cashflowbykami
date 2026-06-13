@@ -1,8 +1,15 @@
 import { useMemo } from 'react';
 import {
   TrendingUp, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
-  History, DollarSign, Crown, AlertCircle, Gem, Sparkles, LineChart
+  History, DollarSign, AlertCircle, Gem, Sparkles, LineChart as LineChartIcon,
+  PieChart as PieChartIcon
 } from 'lucide-react';
+import {
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
+  AreaChart, Area, XAxis, YAxis,
+} from 'recharts';
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAllMovements, Category } from '@/hooks/useMovements';
 import { usePendingMoneySummary } from '@/hooks/useSharedExpenses';
@@ -19,6 +26,27 @@ const formatCurrency = (value: number, currency: 'ARS' | 'USD' = 'ARS') =>
     maximumFractionDigits: 0,
   }).format(value);
 
+const PALETTE = [
+  'hsl(350, 70%, 70%)', 'hsl(45, 90%, 65%)', 'hsl(200, 80%, 70%)',
+  'hsl(280, 60%, 70%)', 'hsl(120, 50%, 60%)', 'hsl(30, 80%, 65%)',
+  'hsl(170, 60%, 55%)', 'hsl(320, 60%, 65%)',
+];
+
+// Balance impact for a single movement
+const getBalanceImpact = (m: any): number => {
+  const amt = Number(m.amount);
+  switch (m.type) {
+    case 'income': return amt;
+    case 'transfer': return amt;
+    case 'expense': return -amt;
+    case 'savings':
+      if (m.is_initial_savings) return 0;
+      return m.is_withdrawal ? amt : -amt;
+    case 'yield': return 0;
+    default: return 0;
+  }
+};
+
 export function Dashboard() {
   const { data: movements = [] } = useAllMovements();
   const pendingSummary = usePendingMoneySummary();
@@ -33,31 +61,12 @@ export function Dashboard() {
       return { month: date.getMonth(), year: date.getFullYear() };
     };
 
-    // Helper: calculate balance contribution of a movement
-    // Balance = income + transfers - expenses - savings_deposited + savings_withdrawn
-    // Yields do NOT affect balance
-    const getBalanceImpact = (m: any): number => {
-      const amt = Number(m.amount);
-      switch (m.type) {
-        case 'income': return amt;
-        case 'transfer': return amt;
-        case 'expense': return -amt;
-        case 'savings':
-          if (m.is_initial_savings) return 0;
-          return m.is_withdrawal ? amt : -amt;
-        case 'yield': return 0;
-        default: return 0;
-      }
-    };
-
-    // Previous months balance
     const previousMonthsMovements = movements.filter((m) => {
       const { month, year } = getMonthYear(m.date);
       return year < currentYear || (year === currentYear && month < currentMonth);
     });
     const previousBalance = previousMonthsMovements.reduce((sum, m) => sum + getBalanceImpact(m), 0);
 
-    // Current month
     const monthlyMovements = movements.filter((m) => {
       const { month, year } = getMonthYear(m.date);
       return month === currentMonth && year === currentYear;
@@ -69,11 +78,10 @@ export function Dashboard() {
     const expense = monthlyMovements
       .filter((m) => m.type === 'expense')
       .reduce((sum, m) => sum + Number(m.amount), 0);
-    
+
     const monthBalance = monthlyMovements.reduce((sum, m) => sum + getBalanceImpact(m), 0);
     const totalBalance = previousBalance + monthBalance;
 
-    // Savings totals (deposits - withdrawals, including initial)
     const allSavingsDeposits = movements
       .filter((m) => m.type === 'savings' && !m.is_withdrawal)
       .reduce((sum, m) => sum + Number(m.amount), 0);
@@ -82,12 +90,10 @@ export function Dashboard() {
       .reduce((sum, m) => sum + Number(m.amount), 0);
     const totalSavingsARS = allSavingsDeposits - allSavingsWithdrawals;
 
-    // Yields (accumulate in savings section)
     const totalYields = movements
       .filter((m) => m.type === 'yield')
       .reduce((sum, m) => sum + Number(m.amount), 0);
 
-    // USD savings
     const usdDeposits = movements
       .filter((m) => m.type === 'savings' && !m.is_withdrawal && m.currency === 'USD')
       .reduce((sum, m) => sum + Number(m.original_amount || 0), 0);
@@ -96,7 +102,6 @@ export function Dashboard() {
       .reduce((sum, m) => sum + Number(m.original_amount || 0), 0);
     const totalUsdSavings = usdDeposits - usdWithdrawals;
 
-    // ARS-only savings
     const arsOnlyDeposits = movements
       .filter((m) => m.type === 'savings' && !m.is_withdrawal && m.currency !== 'USD')
       .reduce((sum, m) => sum + Number(m.amount), 0);
@@ -105,41 +110,49 @@ export function Dashboard() {
       .reduce((sum, m) => sum + Number(m.amount), 0);
     const totalArsSavings = arsOnlyDeposits - arsOnlyWithdrawals;
 
-    // Top expense category this month - use personal_amount for shared expenses
+    // Expenses by category (current month) — use personal_amount
     const expenseByCat = new Map<string, { name: string; total: number }>();
     monthlyMovements
       .filter((m) => m.type === 'expense' && m.category)
       .forEach((m) => {
         const cat = m.category as Category;
         const prev = expenseByCat.get(cat.id) || { name: cat.name, total: 0 };
-        // Use personal_amount if set, otherwise full amount
         const catAmount = Number(m.personal_amount ?? m.amount);
         prev.total += catAmount;
         expenseByCat.set(cat.id, prev);
       });
-    const topExpense = [...expenseByCat.values()].sort((a, b) => b.total - a.total)[0];
+    const categoryBreakdown = [...expenseByCat.values()]
+      .filter((c) => c.total > 0)
+      .sort((a, b) => b.total - a.total);
 
-    // Top income category (exclude transfers)
-    const incomeByCat = new Map<string, { name: string; total: number }>();
-    monthlyMovements
-      .filter((m) => m.type === 'income' && m.category)
-      .forEach((m) => {
-        const cat = m.category as Category;
-        const prev = incomeByCat.get(cat.id) || { name: cat.name, total: 0 };
-        prev.total += Number(m.amount);
-        incomeByCat.set(cat.id, prev);
-      });
-    const topIncome = [...incomeByCat.values()].sort((a, b) => b.total - a.total)[0];
-
-    // Patrimonio = Balance + Ahorros + Rendimientos
     const patrimonio = totalBalance + totalSavingsARS + totalYields;
 
     return {
       income, expense, totalBalance, previousBalance,
       totalSavingsARS, totalUsdSavings, totalArsSavings,
-      totalYields, topExpense, topIncome, patrimonio,
+      totalYields, categoryBreakdown, patrimonio,
     };
   }, [movements]);
+
+  // Last 6 months balance (cumulative end-of-month)
+  const balanceHistory = useMemo(() => {
+    const now = new Date();
+    const months: { month: string; balance: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const ref = subMonths(now, i);
+      const end = endOfMonth(ref);
+      const balance = movements
+        .filter((m) => parseDateString(m.date) <= end)
+        .reduce((sum, m) => sum + getBalanceImpact(m), 0);
+      months.push({
+        month: format(startOfMonth(ref), 'MMM', { locale: es }),
+        balance,
+      });
+    }
+    return months;
+  }, [movements]);
+
+  const totalExpensesMonth = stats.categoryBreakdown.reduce((s, c) => s + c.total, 0);
 
   const totalPending = pendingSummary?.total || 0;
 
@@ -212,7 +225,7 @@ export function Dashboard() {
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <LineChart className="w-4 h-4 text-primary" />
+              <LineChartIcon className="w-4 h-4 text-primary" />
               <p className="text-xs text-muted-foreground">Balance Proyectado</p>
             </div>
             <p className={cn(
@@ -256,6 +269,89 @@ export function Dashboard() {
         </Card>
       </div>
 
+      {/* Donut: Gastos del mes por categoría */}
+      <Card className="glass-card">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <PieChartIcon className="w-4 h-4 text-primary" />
+            Gastos del mes por categoría
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          {stats.categoryBreakdown.length === 0 ? (
+            <p className="text-center text-muted-foreground text-xs py-8">
+              Sin gastos este mes
+            </p>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-full sm:w-1/2 h-[200px] relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.categoryBreakdown}
+                      dataKey="total"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      stroke="none"
+                    >
+                      {stats.categoryBreakdown.map((_, i) => (
+                        <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }: any) => {
+                        if (active && payload?.length) {
+                          const p = payload[0];
+                          const pct = totalExpensesMonth > 0 ? (p.value / totalExpensesMonth) * 100 : 0;
+                          return (
+                            <div className="glass-card p-2 border shadow-lg text-xs">
+                              <p className="font-medium">{p.name}</p>
+                              <p className="text-expense">{formatCurrency(p.value)}</p>
+                              <p className="text-muted-foreground">{pct.toFixed(1)}%</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <p className="text-[10px] text-muted-foreground">Total</p>
+                  <p className="text-sm font-bold text-expense">
+                    {formatCurrency(totalExpensesMonth)}
+                  </p>
+                </div>
+              </div>
+              <div className="w-full sm:w-1/2 space-y-1.5 max-h-[200px] overflow-y-auto">
+                {stats.categoryBreakdown.map((c, i) => {
+                  const pct = totalExpensesMonth > 0 ? (c.total / totalExpensesMonth) * 100 : 0;
+                  return (
+                    <div key={c.name} className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-sm shrink-0"
+                          style={{ backgroundColor: PALETTE[i % PALETTE.length] }}
+                        />
+                        <span className="truncate">{c.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
+                        <span className="font-medium">{formatCurrency(c.total)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Income / Expense this month */}
       <div className="grid grid-cols-2 gap-3">
         <Card className="glass-card">
@@ -282,43 +378,50 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Top Categories */}
-      {(stats.topExpense || stats.topIncome) && (
-        <Card className="glass-card">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Crown className="w-4 h-4 text-primary" />
-              Top del Mes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 space-y-2">
-            {stats.topIncome && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-income-light/50">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-income" />
-                  <span className="text-xs text-muted-foreground">Mayor ingreso</span>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-medium">{stats.topIncome.name}</p>
-                  <p className="text-xs text-income font-semibold">{formatCurrency(stats.topIncome.total)}</p>
-                </div>
-              </div>
-            )}
-            {stats.topExpense && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-expense-light/50">
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-3.5 h-3.5 text-expense" />
-                  <span className="text-xs text-muted-foreground">Mayor gasto (mi parte)</span>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-medium">{stats.topExpense.name}</p>
-                  <p className="text-xs text-expense font-semibold">{formatCurrency(stats.topExpense.total)}</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* Balance — últimos 6 meses */}
+      <Card className="glass-card">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <LineChartIcon className="w-4 h-4 text-primary" />
+            Balance — últimos 6 meses
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-2 pb-4">
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={balanceHistory} margin={{ top: 8, right: 12, left: 12, bottom: 0 }}>
+              <defs>
+                <linearGradient id="balanceFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis hide />
+              <Tooltip
+                content={({ active, payload, label }: any) => {
+                  if (active && payload?.length) {
+                    return (
+                      <div className="glass-card p-2 border shadow-lg text-xs">
+                        <p className="font-medium capitalize">{label}</p>
+                        <p className="text-primary">{formatCurrency(payload[0].value)}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="balance"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+                fill="url(#balanceFill)"
+                dot={{ r: 3, fill: 'hsl(var(--primary))' }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Savings + Yields */}
       <Card className="glass-card">
