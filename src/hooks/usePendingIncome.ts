@@ -29,7 +29,10 @@ export function usePendingIncome() {
         .select('*')
         .order('due_date', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        toast.error('Error al cargar ingresos pendientes. Intentá de nuevo.');
+        throw error;
+      }
       return data as PendingIncome[];
     },
     enabled: !!user,
