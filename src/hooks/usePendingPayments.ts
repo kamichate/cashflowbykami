@@ -28,7 +28,10 @@ export function usePendingPayments() {
         .select('*')
         .order('due_date', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        toast.error('Error al cargar pagos pendientes. Intentá de nuevo.');
+        throw error;
+      }
       return data as PendingPayment[];
     },
     enabled: !!user,

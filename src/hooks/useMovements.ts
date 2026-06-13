@@ -70,7 +70,10 @@ export function useCategories() {
         .select('*')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        toast.error('Error al cargar categorías. Intentá de nuevo.');
+        throw error;
+      }
       return data as Category[];
     },
     enabled: !!user,
@@ -122,7 +125,10 @@ export function useMovements(filters?: MovementFilters) {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        toast.error('Error al cargar movimientos. Intentá de nuevo.');
+        throw error;
+      }
       return data as (Movement & { category: Category | null })[];
     },
     enabled: !!user,
@@ -145,7 +151,10 @@ export function useAllMovements() {
         .order('date', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        toast.error('Error al cargar movimientos. Intentá de nuevo.');
+        throw error;
+      }
       return data as (Movement & { category: Category | null })[];
     },
     enabled: !!user,

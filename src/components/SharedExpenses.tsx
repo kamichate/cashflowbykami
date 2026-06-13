@@ -87,6 +87,9 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const [splitEqual, setSplitEqual] = useState(true);
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
+  const participantsSum = participants.reduce((s, p) => s + p.amount_owed, 0);
+  const totalNum = parseFloat(totalAmount) || 0;
+  const exceedsTotal = !splitEqual && participantsSum > totalNum;
 
   const addParticipant = (name: string) => {
     if (!name.trim() || participants.find((p) => p.person_name === name)) return;
@@ -277,9 +280,13 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
         <p className="text-xs text-destructive">El monto debe ser mayor a cero</p>
       )}
 
+      {exceedsTotal && (
+        <p className="text-xs text-destructive">La suma no puede superar el total</p>
+      )}
+
       <Button
         onClick={handleSubmit}
-        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0}
+        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0 || exceedsTotal}
         className="w-full"
       >
         {addSharedExpense.isPending ? 'Guardando...' : 'Registrar gasto compartido'}
