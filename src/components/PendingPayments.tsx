@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format, parseISO, isAfter, isBefore, addDays, addMonths, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Plus, Check, Trash2, Clock, AlertTriangle, CalendarCheck } from 'lucide-react';
+import { CalendarIcon, Plus, Check, Trash2, Clock, AlertTriangle, CalendarCheck, Pencil } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -24,7 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useCategories } from '@/hooks/useMovements';
-import { usePendingPayments, useAddPendingPayment, useMarkPaymentPaid, useDeletePendingPayment, PendingPayment } from '@/hooks/usePendingPayments';
+import { usePendingPayments, useAddPendingPayment, useMarkPaymentPaid, useDeletePendingPayment, useUpdatePendingPayment, PendingPayment } from '@/hooks/usePendingPayments';
 import { useAddMovement } from '@/hooks/useMovements';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
@@ -56,6 +56,7 @@ export function PendingPayments() {
   const markPaid = useMarkPaymentPaid();
   const addMovement = useAddMovement();
   const deletePayment = useDeletePendingPayment();
+  const updatePayment = useUpdatePendingPayment();
 
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -67,6 +68,33 @@ export function PendingPayments() {
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [scheduledPayment, setScheduledPayment] = useState<PendingPayment | null>(null);
   const [nextDueDate, setNextDueDate] = useState<Date | undefined>(undefined);
+
+  const [editingPayment, setEditingPayment] = useState<PendingPayment | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editAmount, setEditAmount] = useState('');
+  const [editDueDate, setEditDueDate] = useState<Date | undefined>(undefined);
+  const [editCategoryId, setEditCategoryId] = useState('none');
+
+  const openEdit = (p: PendingPayment) => {
+    setEditingPayment(p);
+    setEditDescription(p.description);
+    setEditAmount(String(p.amount));
+    setEditDueDate(parseISO(p.due_date));
+    setEditCategoryId(p.category_id || 'none');
+  };
+
+  const handleEditSave = () => {
+    if (!editingPayment || !editDescription || !editAmount || !editDueDate) return;
+    updatePayment.mutate({
+      id: editingPayment.id,
+      description: editDescription,
+      amount: parseFloat(editAmount),
+      due_date: formatDateToString(editDueDate),
+      category_id: editCategoryId !== 'none' ? editCategoryId : null,
+    }, {
+      onSuccess: () => setEditingPayment(null),
+    });
+  };
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
 
@@ -255,6 +283,11 @@ export function PendingPayments() {
                         <Check className="w-4 h-4 text-[hsl(var(--income))]" />
                       </Button>
                     )}
+                    {!payment.is_paid && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(payment)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    )}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="icon" variant="ghost" className="h-8 w-8">
@@ -308,6 +341,57 @@ export function PendingPayments() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit payment dialog */}
+      <Dialog open={!!editingPayment} onOpenChange={(o) => !o && setEditingPayment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Pago Pendiente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Descripción</Label>
+              <Input value={editDescription} onChange={e => setEditDescription(e.target.value)} />
+            </div>
+            <div>
+              <Label>Monto</Label>
+              <Input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} />
+              {editAmount !== '' && parseFloat(editAmount) <= 0 && (
+                <p className="text-xs text-destructive mt-1">El monto debe ser mayor a cero</p>
+              )}
+            </div>
+            <div>
+              <Label>Fecha de vencimiento</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editDueDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {editDueDate ? format(editDueDate, 'PPP', { locale: es }) : 'Seleccionar fecha'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={editDueDate} onSelect={setEditDueDate} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
+              <Label>Categoría (opcional)</Label>
+              <Select value={editCategoryId} onValueChange={setEditCategoryId}>
+                <SelectTrigger><SelectValue placeholder="Sin categoría" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin categoría</SelectItem>
+                  {expenseCategories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleEditSave} className="w-full" disabled={updatePayment.isPending || !editAmount || parseFloat(editAmount) <= 0 || !editDescription || !editDueDate}>
+              Guardar cambios
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -117,3 +117,32 @@ export function useDeletePendingPayment() {
     onError: () => toast.error('Error al eliminar pago pendiente'),
   });
 }
+
+export function useUpdatePendingPayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: {
+      id: string;
+      description?: string;
+      amount?: number;
+      due_date?: string;
+      category_id?: string | null;
+    }) => {
+      const { data, error } = await supabase
+        .from('pending_payments')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as PendingPayment;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-payments'] });
+      toast.success('Pago pendiente actualizado');
+    },
+    onError: () => toast.error('Error al actualizar pago pendiente'),
+  });
+}
