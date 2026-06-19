@@ -126,3 +126,32 @@ export function useDeletePendingIncome() {
     onError: () => toast.error('Error al eliminar ingreso pendiente'),
   });
 }
+
+export function useUpdatePendingIncome() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: {
+      id: string;
+      description?: string;
+      amount?: number;
+      due_date?: string;
+      category_id?: string | null;
+    }) => {
+      const { data, error } = await supabase
+        .from('pending_income')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as PendingIncome;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-income'] });
+      toast.success('Ingreso pendiente actualizado');
+    },
+    onError: () => toast.error('Error al actualizar ingreso pendiente'),
+  });
+}
