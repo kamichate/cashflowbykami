@@ -268,6 +268,57 @@ export function PendingIncomeComponent() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit income dialog */}
+      <Dialog open={!!editingIncome} onOpenChange={(o) => !o && setEditingIncome(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Ingreso Pendiente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Descripción</Label>
+              <Input value={editDescription} onChange={e => setEditDescription(e.target.value)} />
+            </div>
+            <div>
+              <Label>Monto</Label>
+              <Input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} />
+              {editAmount !== '' && parseFloat(editAmount) <= 0 && (
+                <p className="text-xs text-destructive mt-1">El monto debe ser mayor a cero</p>
+              )}
+            </div>
+            <div>
+              <Label>Fecha esperada</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editDueDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {editDueDate ? format(editDueDate, 'PPP', { locale: es }) : 'Seleccionar fecha'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={editDueDate} onSelect={setEditDueDate} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
+              <Label>Categoría (opcional)</Label>
+              <Select value={editCategoryId} onValueChange={setEditCategoryId}>
+                <SelectTrigger><SelectValue placeholder="Sin categoría" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin categoría</SelectItem>
+                  {incomeCategories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleEditSave} className="w-full" disabled={updateIncome.isPending || !editAmount || parseFloat(editAmount) <= 0 || !editDescription || !editDueDate}>
+              Guardar cambios
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
