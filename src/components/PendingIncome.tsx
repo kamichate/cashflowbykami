@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format, parseISO, isBefore, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Plus, Check, Trash2, Clock, AlertTriangle, CalendarCheck } from 'lucide-react';
+import { CalendarIcon, Plus, Check, Trash2, Clock, AlertTriangle, CalendarCheck, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useCategories } from '@/hooks/useMovements';
-import { usePendingIncome, useAddPendingIncome, useMarkIncomeCollected, useDeletePendingIncome, PendingIncome } from '@/hooks/usePendingIncome';
+import { usePendingIncome, useAddPendingIncome, useMarkIncomeCollected, useDeletePendingIncome, useUpdatePendingIncome, PendingIncome } from '@/hooks/usePendingIncome';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
@@ -53,6 +53,7 @@ export function PendingIncomeComponent() {
   const addIncome = useAddPendingIncome();
   const markCollected = useMarkIncomeCollected();
   const deleteIncome = useDeletePendingIncome();
+  const updateIncome = useUpdatePendingIncome();
 
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -60,6 +61,33 @@ export function PendingIncomeComponent() {
   const [dueDate, setDueDate] = useState<Date>();
   const [categoryId, setCategoryId] = useState('none');
   const [showCollected, setShowCollected] = useState(false);
+
+  const [editingIncome, setEditingIncome] = useState<PendingIncome | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editAmount, setEditAmount] = useState('');
+  const [editDueDate, setEditDueDate] = useState<Date | undefined>(undefined);
+  const [editCategoryId, setEditCategoryId] = useState('none');
+
+  const openEdit = (i: PendingIncome) => {
+    setEditingIncome(i);
+    setEditDescription(i.description);
+    setEditAmount(String(i.amount));
+    setEditDueDate(parseISO(i.due_date));
+    setEditCategoryId(i.category_id || 'none');
+  };
+
+  const handleEditSave = () => {
+    if (!editingIncome || !editDescription || !editAmount || !editDueDate) return;
+    updateIncome.mutate({
+      id: editingIncome.id,
+      description: editDescription,
+      amount: parseFloat(editAmount),
+      due_date: formatDateToString(editDueDate),
+      category_id: editCategoryId !== 'none' ? editCategoryId : null,
+    }, {
+      onSuccess: () => setEditingIncome(null),
+    });
+  };
 
   const incomeCategories = categories.filter(c => c.type === 'income');
 
@@ -209,6 +237,11 @@ export function PendingIncomeComponent() {
                     {!income.is_collected && (
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleMarkCollected(income)}>
                         <Check className="w-4 h-4 text-[hsl(var(--income))]" />
+                      </Button>
+                    )}
+                    {!income.is_collected && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(income)}>
+                        <Pencil className="w-4 h-4" />
                       </Button>
                     )}
                     <AlertDialog>
