@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,12 +22,16 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+
+  const rawNext = params.get('next');
+  const next = rawNext && /^\/(?!\/)/.test(rawNext) ? rawNext : '/';
 
   useEffect(() => {
     if (user) {
-      navigate('/', { replace: true });
+      navigate(next, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, next]);
 
   const handleSubmit = async (action: 'signin' | 'signup') => {
     setError('');

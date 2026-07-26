@@ -1,0 +1,254 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://kpkkbsspwegnfcbddsvi.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "cashflow-mcp",
+      "version": "0.1.0",
+      "title": "CashFlow MCP"
+    },
+    "tools": [
+      {
+        "name": "financial_summary",
+        "title": "Resumen financiero",
+        "description": "Devuelve el resumen financiero del usuario: balance disponible, ahorros, rendimientos, patrimonio total y totales por tipo en un rango de fechas opcional.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "start_date": {
+              "type": "string",
+              "description": "Fecha inicial YYYY-MM-DD para los totales del período."
+            },
+            "end_date": {
+              "type": "string",
+              "description": "Fecha final YYYY-MM-DD para los totales del período."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_movements",
+        "title": "Listar movimientos",
+        "description": "Lista los movimientos financieros del usuario (ingresos, gastos, ahorros, transferencias, rendimientos) con filtros opcionales de tipo y rango de fechas.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "income",
+                "expense",
+                "savings",
+                "transfer",
+                "yield"
+              ],
+              "description": "Filtrar por tipo de movimiento."
+            },
+            "start_date": {
+              "type": "string",
+              "description": "Fecha inicial YYYY-MM-DD."
+            },
+            "end_date": {
+              "type": "string",
+              "description": "Fecha final YYYY-MM-DD."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Máximo de filas (default 50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_movement",
+        "title": "Crear movimiento",
+        "description": "Crea un movimiento financiero (ingreso, gasto, ahorro, transferencia o rendimiento) para el usuario autenticado.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Fecha del movimiento YYYY-MM-DD."
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "income",
+                "expense",
+                "savings",
+                "transfer",
+                "yield"
+              ],
+              "description": "Tipo de movimiento."
+            },
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Monto en la moneda indicada."
+            },
+            "detail": {
+              "type": "string",
+              "description": "Descripción del movimiento."
+            },
+            "category_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID de categoría existente."
+            },
+            "currency": {
+              "type": "string",
+              "enum": [
+                "ARS",
+                "USD"
+              ],
+              "description": "Moneda (default ARS)."
+            },
+            "is_withdrawal": {
+              "type": "boolean",
+              "description": "Para ahorros: marca un retiro en lugar de un depósito."
+            }
+          },
+          "required": [
+            "date",
+            "type",
+            "amount"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_categories",
+        "title": "Listar categorías",
+        "description": "Lista las categorías del usuario, con sus IDs, para poder asignarlas al crear movimientos o pendientes.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "income",
+                "expense",
+                "savings",
+                "transfer",
+                "yield"
+              ],
+              "description": "Filtrar por tipo de categoría."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_pending",
+        "title": "Listar pendientes",
+        "description": "Lista los pagos pendientes (a pagar) y/o los ingresos pendientes (a cobrar) del usuario, con sus fechas de vencimiento.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "payments",
+                "income",
+                "both"
+              ],
+              "description": "Qué listar: pagos, ingresos o ambos (default both)."
+            },
+            "include_settled": {
+              "type": "boolean",
+              "description": "Incluir los ya pagados/cobrados (default false)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_pending_payment",
+        "title": "Crear pago pendiente",
+        "description": "Crea un pago pendiente con fecha de vencimiento. No afecta el balance hasta marcarse como pagado en la app.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Descripción del pago."
+            },
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Monto del pago."
+            },
+            "due_date": {
+              "type": "string",
+              "description": "Fecha de vencimiento YYYY-MM-DD."
+            },
+            "category_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID de categoría de gasto."
+            }
+          },
+          "required": [
+            "description",
+            "amount",
+            "due_date"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
