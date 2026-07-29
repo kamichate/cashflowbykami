@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
+import { useState, useMemo, useEffect } from 'react';
+import { format, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Plus, TrendingUp, Wallet, PiggyBank, ArrowDownToLine, ArrowUpFromLine, Archive, ArrowLeftRight, Sparkles } from 'lucide-react';
+import { CalendarIcon, Plus, TrendingUp, Wallet, PiggyBank, ArrowDownToLine, ArrowUpFromLine, Archive, ArrowLeftRight, Sparkles, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
 import { useCategories, useAddMovement, MovementType, Category } from '@/hooks/useMovements';
+import { useAddPendingPayment } from '@/hooks/usePendingPayments';
+import { useAddPendingIncome } from '@/hooks/usePendingIncome';
 import { ExchangeRateDialog } from './ExchangeRateDialog';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
