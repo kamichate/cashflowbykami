@@ -15,6 +15,9 @@ export interface PendingPayment {
   paid_at: string | null;
   created_at: string;
   updated_at: string;
+  installment_group_id: string | null;
+  installment_number: number | null;
+  total_installments: number | null;
 }
 
 export function usePendingPayments() {
