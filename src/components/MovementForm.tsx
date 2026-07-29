@@ -217,6 +217,10 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
     setCategoryId('');
     setIsWithdrawal(false);
     setIsInitialSavings(false);
+    if (newType !== 'expense' && newType !== 'income') {
+      setHasInstallments(false);
+      setInstallmentAmounts([]);
+    }
   };
 
   const TypeIcon = typeConfig[type].icon;
