@@ -52,6 +52,9 @@ export function useAddPendingPayment() {
       due_date: string;
       category_id?: string;
       is_recurring?: boolean;
+      installment_group_id?: string;
+      installment_number?: number;
+      total_installments?: number;
     }) => {
       if (!user) throw new Error('No user');
 

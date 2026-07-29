@@ -52,6 +52,9 @@ export function useAddPendingIncome() {
       amount: number;
       due_date: string;
       category_id?: string;
+      installment_group_id?: string;
+      installment_number?: number;
+      total_installments?: number;
     }) => {
       if (!user) throw new Error('No user');
 

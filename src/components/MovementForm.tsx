@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
+import { useState, useMemo, useEffect } from 'react';
+import { format, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Plus, TrendingUp, Wallet, PiggyBank, ArrowDownToLine, ArrowUpFromLine, Archive, ArrowLeftRight, Sparkles } from 'lucide-react';
+import { CalendarIcon, Plus, TrendingUp, Wallet, PiggyBank, ArrowDownToLine, ArrowUpFromLine, Archive, ArrowLeftRight, Sparkles, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
 import { useCategories, useAddMovement, MovementType, Category } from '@/hooks/useMovements';
+import { useAddPendingPayment } from '@/hooks/usePendingPayments';
+import { useAddPendingIncome } from '@/hooks/usePendingIncome';
 import { ExchangeRateDialog } from './ExchangeRateDialog';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
@@ -46,6 +48,9 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
   const [isInitialSavings, setIsInitialSavings] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [showExchangeDialog, setShowExchangeDialog] = useState(false);
+  const [hasInstallments, setHasInstallments] = useState(false);
+  const [installmentCount, setInstallmentCount] = useState(2);
+  const [installmentAmounts, setInstallmentAmounts] = useState<number[]>([]);
   const [pendingSubmit, setPendingSubmit] = useState<{
     usdAmount: number;
     isWithdrawal: boolean;
@@ -53,6 +58,8 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
 
   const { data: categories = [] } = useCategories();
   const addMovement = useAddMovement();
+  const addPendingPayment = useAddPendingPayment();
+  const addPendingIncome = useAddPendingIncome();
 
   // Transfer and yield use income categories (they add money)
   const categoryType = type === 'transfer' ? 'income' : type === 'yield' ? 'savings' : type;
@@ -66,6 +73,49 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
 
   // For transfer/yield, no category is needed
   const needsCategory = type !== 'transfer';
+
+  // Installments are only available for plain expenses and income
+  const canUseInstallments = type === 'expense' || type === 'income';
+  const installmentsActive = canUseInstallments && hasInstallments;
+
+  const totalAmount = parseFloat(amount) || 0;
+
+  // Reset the installment preview whenever the total or the count changes
+  useEffect(() => {
+    if (!installmentsActive || totalAmount <= 0) {
+      setInstallmentAmounts([]);
+      return;
+    }
+    const per = Math.round((totalAmount / installmentCount) * 100) / 100;
+    const amounts = Array(installmentCount).fill(per);
+    // absorb rounding difference in the last installment
+    const diff = Math.round((totalAmount - per * installmentCount) * 100) / 100;
+    amounts[installmentCount - 1] = Math.round((per + diff) * 100) / 100;
+    setInstallmentAmounts(amounts);
+  }, [installmentsActive, totalAmount, installmentCount]);
+
+  const handleInstallmentAmountChange = (index: number, value: string) => {
+    const newValue = parseFloat(value);
+    setInstallmentAmounts((prev) => {
+      const next = [...prev];
+      next[index] = isNaN(newValue) ? 0 : newValue;
+      const others = next.length - 1;
+      if (others > 0) {
+        const remaining = totalAmount - next[index];
+        const per = Math.round((remaining / others) * 100) / 100;
+        next.forEach((_, i) => {
+          if (i !== index) next[i] = per;
+        });
+      }
+      return next;
+    });
+  };
+
+  const installmentsSum = installmentAmounts.reduce((s, a) => s + a, 0);
+  const installmentsInvalid =
+    installmentsActive &&
+    (installmentAmounts.some((a) => a <= 0) ||
+      Math.abs(installmentsSum - totalAmount) > 0.5);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +132,31 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
     }
 
     submitMovement({
-      amount: parsedAmount,
+      amount: installmentsActive ? installmentAmounts[0] : parsedAmount,
       currency: isUsd ? 'USD' : 'ARS',
     });
+  };
+
+  const createRemainingInstallments = () => {
+    const groupId = crypto.randomUUID();
+    const baseDescription = detail.trim() || typeConfig[type].label;
+
+    for (let i = 1; i < installmentCount; i++) {
+      const payload = {
+        description: `${baseDescription} (cuota ${i + 1}/${installmentCount})`,
+        amount: installmentAmounts[i],
+        due_date: formatDateToString(addMonths(date, i)),
+        category_id: categoryId || undefined,
+        installment_group_id: groupId,
+        installment_number: i + 1,
+        total_installments: installmentCount,
+      };
+      if (type === 'expense') {
+        addPendingPayment.mutate(payload);
+      } else {
+        addPendingIncome.mutate(payload);
+      }
+    }
   };
 
   const submitMovement = (options: {
@@ -93,12 +165,17 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
     exchangeRate?: number;
     originalAmount?: number;
   }) => {
+    const withInstallments = installmentsActive;
+    const detailText = withInstallments
+      ? `${detail.trim() || typeConfig[type].label} (cuota 1/${installmentCount})`
+      : detail.trim() || undefined;
+
     addMovement.mutate(
       {
         date: formatDateToString(date),
         type,
         category_id: needsCategory ? categoryId : null,
-        detail: detail.trim() || undefined,
+        detail: detailText,
         amount: options.amount,
         is_withdrawal: type === 'savings' ? isWithdrawal : false,
         is_initial_savings: type === 'savings' ? isInitialSavings : false,
@@ -108,11 +185,15 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
       },
       {
         onSuccess: () => {
+          if (withInstallments) createRemainingInstallments();
           setCategoryId('');
           setDetail('');
           setAmount('');
           setIsWithdrawal(false);
           setIsInitialSavings(false);
+          setHasInstallments(false);
+          setInstallmentCount(2);
+          setInstallmentAmounts([]);
           onSuccess?.();
         },
       }
@@ -136,6 +217,10 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
     setCategoryId('');
     setIsWithdrawal(false);
     setIsInitialSavings(false);
+    if (newType !== 'expense' && newType !== 'income') {
+      setHasInstallments(false);
+      setInstallmentAmounts([]);
+    }
   };
 
   const TypeIcon = typeConfig[type].icon;
@@ -333,6 +418,77 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
               )}
             </div>
 
+            {/* Installments */}
+            {canUseInstallments && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <span className="text-sm font-medium">¿En cuotas?</span>
+                      <p className="text-xs text-muted-foreground">
+                        La cuota 1 se registra hoy, el resto queda pendiente
+                      </p>
+                    </div>
+                  </div>
+                  <Switch checked={hasInstallments} onCheckedChange={setHasInstallments} />
+                </div>
+
+                {hasInstallments && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Cantidad de cuotas</Label>
+                      <Input
+                        type="number"
+                        min={2}
+                        max={48}
+                        value={installmentCount}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!isNaN(v)) setInstallmentCount(Math.min(48, Math.max(2, v)));
+                        }}
+                      />
+                    </div>
+
+                    {installmentAmounts.length > 0 && (
+                      <div className="space-y-2 p-3 rounded-lg bg-muted/30 border border-border/50">
+                        <p className="text-xs text-muted-foreground">
+                          Previsualización — podés editar los montos
+                        </p>
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                          {installmentAmounts.map((amt, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <span className="text-xs w-20 shrink-0 text-muted-foreground">
+                                {i + 1}/{installmentCount}
+                              </span>
+                              <span className="text-xs w-24 shrink-0 text-muted-foreground">
+                                {format(addMonths(date, i), 'dd MMM yy', { locale: es })}
+                              </span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={Number.isFinite(amt) ? amt : 0}
+                                onChange={(e) => handleInstallmentAmountChange(i, e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        {installmentsInvalid && (
+                          <p className="text-xs text-destructive">
+                            Los montos deben ser positivos y sumar el total
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+
+
             {/* Detail */}
             <div className="space-y-2">
               <Label>Detalle (opcional)</Label>
@@ -348,10 +504,10 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={(needsCategory && !categoryId) || !amount || parseFloat(amount) <= 0 || addMovement.isPending}
+              disabled={(needsCategory && !categoryId) || !amount || parseFloat(amount) <= 0 || installmentsInvalid || addMovement.isPending}
             >
               <Plus className="w-4 h-4 mr-2" />
-              {getButtonText()}
+              {installmentsActive ? `Registrar en ${installmentCount} cuotas` : getButtonText()}
             </Button>
           </form>
         </CardContent>
