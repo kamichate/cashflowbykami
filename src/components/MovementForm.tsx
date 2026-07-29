@@ -504,10 +504,10 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={(needsCategory && !categoryId) || !amount || parseFloat(amount) <= 0 || addMovement.isPending}
+              disabled={(needsCategory && !categoryId) || !amount || parseFloat(amount) <= 0 || installmentsInvalid || addMovement.isPending}
             >
               <Plus className="w-4 h-4 mr-2" />
-              {getButtonText()}
+              {installmentsActive ? `Registrar en ${installmentCount} cuotas` : getButtonText()}
             </Button>
           </form>
         </CardContent>
