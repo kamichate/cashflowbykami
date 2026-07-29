@@ -414,6 +414,77 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
               )}
             </div>
 
+            {/* Installments */}
+            {canUseInstallments && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <span className="text-sm font-medium">¿En cuotas?</span>
+                      <p className="text-xs text-muted-foreground">
+                        La cuota 1 se registra hoy, el resto queda pendiente
+                      </p>
+                    </div>
+                  </div>
+                  <Switch checked={hasInstallments} onCheckedChange={setHasInstallments} />
+                </div>
+
+                {hasInstallments && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Cantidad de cuotas</Label>
+                      <Input
+                        type="number"
+                        min={2}
+                        max={48}
+                        value={installmentCount}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!isNaN(v)) setInstallmentCount(Math.min(48, Math.max(2, v)));
+                        }}
+                      />
+                    </div>
+
+                    {installmentAmounts.length > 0 && (
+                      <div className="space-y-2 p-3 rounded-lg bg-muted/30 border border-border/50">
+                        <p className="text-xs text-muted-foreground">
+                          Previsualización — podés editar los montos
+                        </p>
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                          {installmentAmounts.map((amt, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <span className="text-xs w-20 shrink-0 text-muted-foreground">
+                                {i + 1}/{installmentCount}
+                              </span>
+                              <span className="text-xs w-24 shrink-0 text-muted-foreground">
+                                {format(addMonths(date, i), 'dd MMM yy', { locale: es })}
+                              </span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={Number.isFinite(amt) ? amt : 0}
+                                onChange={(e) => handleInstallmentAmountChange(i, e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        {installmentsInvalid && (
+                          <p className="text-xs text-destructive">
+                            Los montos deben ser positivos y sumar el total
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+
+
             {/* Detail */}
             <div className="space-y-2">
               <Label>Detalle (opcional)</Label>
