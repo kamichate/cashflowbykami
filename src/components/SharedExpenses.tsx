@@ -26,6 +26,8 @@ import {
   usePeople,
 } from '@/hooks/useSharedExpenses';
 import { useCategories } from '@/hooks/useMovements';
+import { useAddPendingPayment } from '@/hooks/usePendingPayments';
+import { Switch } from '@/components/ui/switch';
 import { formatDateToString, parseDateString } from '@/lib/dateUtils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
