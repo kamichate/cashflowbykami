@@ -338,13 +338,51 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
         <p className="text-xs text-destructive">La suma no puede superar el total</p>
       )}
 
+      {missingThirdParty && (
+        <p className="text-xs text-destructive">Indicá quién pagó el gasto</p>
+      )}
+
       <Button
         onClick={handleSubmit}
-        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0 || exceedsTotal}
+        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0 || exceedsTotal || missingThirdParty}
         className="w-full"
       >
         {addSharedExpense.isPending ? 'Guardando...' : 'Registrar gasto compartido'}
       </Button>
+
+      <Dialog open={showRefundDialog} onOpenChange={(o) => { if (!o) { setShowRefundDialog(false); onSuccess(); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¿Querés agregar un pago pendiente a {thirdPartyName.trim()}?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Monto a devolver</Label>
+              <Input
+                type="number"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => { setShowRefundDialog(false); onSuccess(); }}
+              >
+                Omitir
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleAddRefund}
+                disabled={addPendingPayment.isPending || !(parseFloat(refundAmount) > 0)}
+              >
+                Agregar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
