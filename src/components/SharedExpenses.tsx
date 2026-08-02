@@ -182,6 +182,28 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </div>
 
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="paid-by-me">¿Lo pagaste vos?</Label>
+          <Switch id="paid-by-me" checked={paidByMe} onCheckedChange={setPaidByMe} />
+        </div>
+        {!paidByMe && (
+          <div>
+            <Label>¿Quién lo pagó?</Label>
+            <Input
+              value={thirdPartyName}
+              onChange={(e) => setThirdPartyName(e.target.value)}
+              placeholder="Nombre"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              No se descontará de tu balance
+            </p>
+          </div>
+        )}
+      </div>
+
+
+
       <div>
         <Label>Categoría de gasto</Label>
         <Select value={categoryId} onValueChange={setCategoryId}>
