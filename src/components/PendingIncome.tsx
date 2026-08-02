@@ -54,6 +54,7 @@ export function PendingIncomeComponent() {
   const markCollected = useMarkIncomeCollected();
   const deleteIncome = useDeletePendingIncome();
   const updateIncome = useUpdatePendingIncome();
+  const updateInstallmentGroup = useUpdateInstallmentGroup();
 
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState('');
