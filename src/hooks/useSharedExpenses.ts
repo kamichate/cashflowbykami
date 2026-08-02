@@ -10,6 +10,8 @@ export interface SharedExpense {
   total_amount: number;
   description: string | null;
   date: string;
+  paid_by_third_party?: boolean;
+  third_party_name?: string | null;
   created_at: string;
   updated_at: string;
   participants?: SharedExpenseParticipant[];
