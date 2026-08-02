@@ -39,6 +39,8 @@ export interface NewSharedExpense {
   date: string;
   movement_id?: string;
   category_id?: string;
+  paid_by_third_party?: boolean;
+  third_party_name?: string;
   participants: { person_name: string; amount_owed: number }[];
 }
 
