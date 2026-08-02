@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,9 +28,27 @@ import {
 import { useCategories } from '@/hooks/useMovements';
 import { useAddPendingPayment } from '@/hooks/usePendingPayments';
 import { Switch } from '@/components/ui/switch';
+import { useAddPendingIncomeBatch } from '@/hooks/usePendingIncome';
 import { formatDateToString, parseDateString } from '@/lib/dateUtils';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+interface ParticipantDraft {
+  person_name: string;
+  amount_owed: number;
+  installments: number | null;
+  amounts: number[];
+}
+
+function splitInstallments(total: number, count: number): number[] {
+  const per = Math.round((total / count) * 100) / 100;
+  const amounts = Array(count).fill(per);
+  const diff = Math.round((total - per * count) * 100) / 100;
+  amounts[count - 1] = Math.round((per + diff) * 100) / 100;
+  return amounts;
+}
+
+
 
 export function SharedExpenses() {
   const { data: sharedExpenses, isLoading } = useSharedExpenses();
@@ -78,6 +96,7 @@ export function SharedExpenses() {
 function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const addSharedExpense = useAddSharedExpense();
   const addPendingPayment = useAddPendingPayment();
+  const addPendingIncomeBatch = useAddPendingIncomeBatch();
   const { data: people } = usePeople();
   const { data: categories = [] } = useCategories();
 
@@ -85,7 +104,7 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const [totalAmount, setTotalAmount] = useState('');
   const [date, setDate] = useState(formatDateToString(new Date()));
   const [categoryId, setCategoryId] = useState('');
-  const [participants, setParticipants] = useState<{ person_name: string; amount_owed: number }[]>([]);
+  const [participants, setParticipants] = useState<ParticipantDraft[]>([]);
   const [newPersonName, setNewPersonName] = useState('');
   const [splitEqual, setSplitEqual] = useState(true);
   const [paidByMe, setPaidByMe] = useState(true);
@@ -99,13 +118,44 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const exceedsTotal = !splitEqual && participantsSum > totalNum;
   const missingThirdParty = !paidByMe && !thirdPartyName.trim();
 
+  // Keep installment previews in sync with each participant's share / count
+  useEffect(() => {
+    setParticipants((prev) => {
+      let changed = false;
+      const next = prev.map((p) => {
+        if (!p.installments) {
+          if (p.amounts.length) { changed = true; return { ...p, amounts: [] }; }
+          return p;
+        }
+        const sum = p.amounts.reduce((s, a) => s + a, 0);
+        const inSync =
+          p.amounts.length === p.installments &&
+          Math.abs(sum - p.amount_owed) < 0.5;
+        if (inSync) return p;
+        changed = true;
+        return { ...p, amounts: splitInstallments(p.amount_owed, p.installments) };
+      });
+      return changed ? next : prev;
+    });
+  }, [participants]);
+
+  const installmentsInvalid = participants.some(
+    (p) =>
+      p.installments &&
+      (p.amounts.some((a) => a <= 0) ||
+        Math.abs(p.amounts.reduce((s, a) => s + a, 0) - p.amount_owed) > 0.5)
+  );
+
   const addParticipant = (name: string) => {
     if (!name.trim() || participants.find((p) => p.person_name === name)) return;
-    setParticipants([...participants, { person_name: name.trim(), amount_owed: 0 }]);
+    setParticipants([
+      ...participants,
+      { person_name: name.trim(), amount_owed: 0, installments: null, amounts: [] },
+    ]);
     setNewPersonName('');
   };
 
-  const recalcEqualSplit = (total: number, parts: typeof participants) => {
+  const recalcEqualSplit = (total: number, parts: ParticipantDraft[]) => {
     if (!splitEqual || parts.length === 0) return parts;
     const each = Math.round((total / (parts.length + 1)) * 100) / 100;
     return parts.map((p) => ({ ...p, amount_owed: each }));
@@ -119,10 +169,31 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
     }
   };
 
+  const handleInstallmentAmountChange = (personName: string, index: number, value: string) => {
+    const parsed = parseFloat(value);
+    setParticipants((prev) =>
+      prev.map((p) => {
+        if (p.person_name !== personName || !p.installments) return p;
+        const amounts = [...p.amounts];
+        amounts[index] = isNaN(parsed) ? 0 : parsed;
+        const others = amounts.map((_, i) => i).filter((i) => i !== index);
+        const remaining = p.amount_owed - amounts[index];
+        if (others.length > 0) {
+          const per = Math.round((remaining / others.length) * 100) / 100;
+          others.forEach((i) => { amounts[i] = per; });
+          const diff = Math.round((p.amount_owed - amounts.reduce((s, a) => s + a, 0)) * 100) / 100;
+          const last = others[others.length - 1];
+          amounts[last] = Math.round((amounts[last] + diff) * 100) / 100;
+        }
+        return { ...p, amounts };
+      })
+    );
+  };
+
   const handleSubmit = async () => {
     const total = parseFloat(totalAmount);
     if (!total || participants.length === 0) return;
-    if (missingThirdParty) return;
+    if (missingThirdParty || installmentsInvalid) return;
 
     const finalParticipants = splitEqual
       ? recalcEqualSplit(total, participants)
@@ -135,8 +206,34 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
       category_id: categoryId || undefined,
       paid_by_third_party: !paidByMe,
       third_party_name: paidByMe ? undefined : thirdPartyName.trim(),
-      participants: finalParticipants,
+      participants: finalParticipants.map((p) => ({
+        person_name: p.person_name,
+        amount_owed: p.amount_owed,
+      })),
     });
+
+    // Installment plans for participants paying in cuotas -> pending income
+    const rows = finalParticipants.flatMap((p) => {
+      if (!p.installments) return [];
+      const groupId = crypto.randomUUID();
+      const amounts =
+        p.amounts.length === p.installments
+          ? p.amounts
+          : splitInstallments(p.amount_owed, p.installments);
+      return amounts.map((amt, i) => ({
+        description: `${p.person_name}${description ? ` - ${description}` : ''} (cuota ${i + 1}/${p.installments})`,
+        amount: amt,
+        due_date: formatDateToString(addMonths(parseDateString(date), i + 1)),
+        category_id: null,
+        installment_group_id: groupId,
+        installment_number: i + 1,
+        total_installments: p.installments as number,
+      }));
+    });
+
+    if (rows.length) {
+      await addPendingIncomeBatch.mutateAsync(rows);
+    }
 
     if (!paidByMe) {
       setRefundAmount(String(total));
@@ -268,7 +365,7 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
                   size="sm"
                   className="text-xs h-7"
                   onClick={() => {
-                    const newParts = [...participants, { person_name: p.name, amount_owed: 0 }];
+                    const newParts: ParticipantDraft[] = [...participants, { person_name: p.name, amount_owed: 0, installments: null, amounts: [] }];
                     const updated = splitEqual
                       ? recalcEqualSplit(parseFloat(totalAmount) || 0, newParts)
                       : newParts;
@@ -292,40 +389,112 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
         )}
 
         {participants.map((p) => (
-          <div key={p.person_name} className="flex items-center gap-2 mb-2">
-            <span className="flex-1 text-sm truncate">{p.person_name}</span>
-            {!splitEqual ? (
-              <Input
-                type="number"
-                className="w-24 h-8 text-sm"
-                value={p.amount_owed || ''}
-                onChange={(e) =>
+          <div key={p.person_name} className="mb-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="flex-1 text-sm truncate">{p.person_name}</span>
+              {!splitEqual ? (
+                <Input
+                  type="number"
+                  className="w-24 h-8 text-sm"
+                  value={p.amount_owed || ''}
+                  onChange={(e) =>
+                    setParticipants(
+                      participants.map((pp) =>
+                        pp.person_name === p.person_name
+                          ? { ...pp, amount_owed: parseFloat(e.target.value) || 0 }
+                          : pp
+                      )
+                    )
+                  }
+                />
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  ${p.amount_owed.toLocaleString('es-AR')}
+                </span>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  const newParts = participants.filter((pp) => pp.person_name !== p.person_name);
+                  setParticipants(splitEqual ? recalcEqualSplit(parseFloat(totalAmount) || 0, newParts) : newParts);
+                }}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between pl-1">
+              <span className="text-xs text-muted-foreground">¿Paga en cuotas?</span>
+              <Switch
+                checked={!!p.installments}
+                onCheckedChange={(checked) =>
                   setParticipants(
                     participants.map((pp) =>
                       pp.person_name === p.person_name
-                        ? { ...pp, amount_owed: parseFloat(e.target.value) || 0 }
+                        ? {
+                            ...pp,
+                            installments: checked ? 2 : null,
+                            amounts: checked ? splitInstallments(pp.amount_owed, 2) : [],
+                          }
                         : pp
                     )
                   )
                 }
               />
-            ) : (
-              <span className="text-sm text-muted-foreground">
-                ${p.amount_owed.toLocaleString('es-AR')}
-              </span>
+            </div>
+
+            {p.installments && (
+              <div className="space-y-2 p-2 rounded-lg bg-muted/30 border border-border/50">
+                <div className="space-y-1">
+                  <Label className="text-xs">Cantidad de cuotas</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={48}
+                    className="h-8 text-sm"
+                    value={p.installments}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      if (isNaN(v)) return;
+                      const count = Math.min(48, Math.max(2, v));
+                      setParticipants(
+                        participants.map((pp) =>
+                          pp.person_name === p.person_name
+                            ? { ...pp, installments: count, amounts: splitInstallments(pp.amount_owed, count) }
+                            : pp
+                        )
+                      );
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Previsualización — podés editar los montos
+                </p>
+                <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                  {p.amounts.map((amt, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs w-10 shrink-0 text-muted-foreground">
+                        {i + 1}/{p.installments}
+                      </span>
+                      <span className="text-xs w-20 shrink-0 text-muted-foreground">
+                        {format(addMonths(parseDateString(date), i + 1), 'dd MMM yy', { locale: es })}
+                      </span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="h-8 text-sm"
+                        value={Number.isFinite(amt) ? amt : 0}
+                        onChange={(e) => handleInstallmentAmountChange(p.person_name, i, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => {
-                const newParts = participants.filter((pp) => pp.person_name !== p.person_name);
-                setParticipants(splitEqual ? recalcEqualSplit(parseFloat(totalAmount) || 0, newParts) : newParts);
-              }}
-            >
-              <X className="w-3 h-3" />
-            </Button>
           </div>
         ))}
       </div>
@@ -342,9 +511,15 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
         <p className="text-xs text-destructive">Indicá quién pagó el gasto</p>
       )}
 
+      {installmentsInvalid && (
+        <p className="text-xs text-destructive">
+          Las cuotas deben ser positivas y sumar la parte de cada persona
+        </p>
+      )}
+
       <Button
         onClick={handleSubmit}
-        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0 || exceedsTotal || missingThirdParty}
+        disabled={addSharedExpense.isPending || addPendingIncomeBatch.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0 || exceedsTotal || missingThirdParty || installmentsInvalid}
         className="w-full"
       >
         {addSharedExpense.isPending ? 'Guardando...' : 'Registrar gasto compartido'}

@@ -78,6 +78,43 @@ export function useAddPendingIncome() {
   });
 }
 
+export interface NewPendingIncomeRow {
+  description: string;
+  amount: number;
+  due_date: string;
+  category_id?: string | null;
+  installment_group_id?: string;
+  installment_number?: number;
+  total_installments?: number;
+}
+
+export function useAddPendingIncomeBatch() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (rows: NewPendingIncomeRow[]) => {
+      if (!user) throw new Error('No user');
+      if (!rows.length) return [];
+
+      const { data, error } = await supabase
+        .from('pending_income')
+        .insert(rows.map((r) => ({ ...r, user_id: user.id })))
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['pending-income'] });
+      if (data && data.length) toast.success('Cuotas registradas');
+    },
+    onError: () => toast.error('Error al registrar las cuotas'),
+  });
+}
+
+
+
 export function useMarkIncomeCollected() {
   const queryClient = useQueryClient();
   const addMovement = useAddMovement();

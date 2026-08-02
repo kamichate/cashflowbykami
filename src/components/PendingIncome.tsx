@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useCategories } from '@/hooks/useMovements';
-import { usePendingIncome, useAddPendingIncome, useMarkIncomeCollected, useDeletePendingIncome, useUpdatePendingIncome, PendingIncome } from '@/hooks/usePendingIncome';
+import { usePendingIncome, useAddPendingIncome, useMarkIncomeCollected, useDeletePendingIncome, useUpdatePendingIncome, useUpdateInstallmentGroup, PendingIncome } from '@/hooks/usePendingIncome';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +54,7 @@ export function PendingIncomeComponent() {
   const markCollected = useMarkIncomeCollected();
   const deleteIncome = useDeletePendingIncome();
   const updateIncome = useUpdatePendingIncome();
+  const updateInstallmentGroup = useUpdateInstallmentGroup();
 
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -110,7 +111,17 @@ export function PendingIncomeComponent() {
   };
 
   const handleMarkCollected = (income: PendingIncome) => {
-    markCollected.mutate(income);
+    markCollected.mutate(income, {
+      onSuccess: () => {
+        if (income.installment_group_id) {
+          updateInstallmentGroup.mutate({
+            group_id: income.installment_group_id,
+            installment_id: income.id,
+            new_amount: Number(income.amount),
+          });
+        }
+      },
+    });
   };
 
   const uncollectedIncomes = incomes.filter(i => !i.is_collected);
@@ -225,7 +236,14 @@ export function PendingIncomeComponent() {
                       <StatusIcon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{income.description}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-medium truncate">{income.description}</p>
+                        {income.installment_number && income.total_installments && (
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            cuota {income.installment_number}/{income.total_installments}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {format(parseISO(income.due_date), 'dd MMM yyyy', { locale: es })}
                       </p>
