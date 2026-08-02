@@ -268,7 +268,14 @@ export function PendingPayments() {
                       <StatusIcon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{payment.description}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-medium truncate">{payment.description}</p>
+                        {payment.installment_number && payment.total_installments && (
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            cuota {payment.installment_number}/{payment.total_installments}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {format(parseISO(payment.due_date), 'dd MMM yyyy', { locale: es })}
                         {payment.is_recurring && ' · Recurrente'}
