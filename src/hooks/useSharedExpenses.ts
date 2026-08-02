@@ -10,6 +10,8 @@ export interface SharedExpense {
   total_amount: number;
   description: string | null;
   date: string;
+  paid_by_third_party?: boolean;
+  third_party_name?: string | null;
   created_at: string;
   updated_at: string;
   participants?: SharedExpenseParticipant[];
@@ -39,6 +41,8 @@ export interface NewSharedExpense {
   date: string;
   movement_id?: string;
   category_id?: string;
+  paid_by_third_party?: boolean;
+  third_party_name?: string;
   participants: { person_name: string; amount_owed: number }[];
 }
 
@@ -120,28 +124,33 @@ export function useAddSharedExpense() {
       const othersOwed = input.participants.reduce((sum, p) => sum + p.amount_owed, 0);
       const personalAmount = input.total_amount - othersOwed;
 
-      // Create the expense movement (full amount affects balance)
-      const movementInsert: any = {
-        user_id: user.id,
-        date: input.date,
-        type: 'expense' as const,
-        amount: input.total_amount,
-        personal_amount: personalAmount, // User's share for category analysis
-        detail: input.description ? `Compartido: ${input.description}` : 'Gasto compartido',
-        is_withdrawal: false,
-        is_initial_savings: false,
-        currency: 'ARS',
-      };
-      if (input.category_id) {
-        movementInsert.category_id = input.category_id;
-      }
+      // If a third party paid, no movement affects the user's balance
+      let movementId: string | null = null;
 
-      const { data: movement, error: movError } = await supabase
-        .from('movements')
-        .insert(movementInsert)
-        .select()
-        .single();
-      if (movError) throw movError;
+      if (!input.paid_by_third_party) {
+        const movementInsert: any = {
+          user_id: user.id,
+          date: input.date,
+          type: 'expense' as const,
+          amount: input.total_amount,
+          personal_amount: personalAmount, // User's share for category analysis
+          detail: input.description ? `Compartido: ${input.description}` : 'Gasto compartido',
+          is_withdrawal: false,
+          is_initial_savings: false,
+          currency: 'ARS',
+        };
+        if (input.category_id) {
+          movementInsert.category_id = input.category_id;
+        }
+
+        const { data: movement, error: movError } = await supabase
+          .from('movements')
+          .insert(movementInsert)
+          .select()
+          .single();
+        if (movError) throw movError;
+        movementId = movement.id;
+      }
 
       // Create the shared expense
       const { data: se, error: seError } = await supabase
@@ -151,7 +160,9 @@ export function useAddSharedExpense() {
           total_amount: input.total_amount,
           description: input.description || null,
           date: input.date,
-          movement_id: movement.id,
+          movement_id: movementId,
+          paid_by_third_party: input.paid_by_third_party || false,
+          third_party_name: input.paid_by_third_party ? input.third_party_name || null : null,
         })
         .select()
         .single();

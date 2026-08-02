@@ -26,6 +26,8 @@ import {
   usePeople,
 } from '@/hooks/useSharedExpenses';
 import { useCategories } from '@/hooks/useMovements';
+import { useAddPendingPayment } from '@/hooks/usePendingPayments';
+import { Switch } from '@/components/ui/switch';
 import { formatDateToString, parseDateString } from '@/lib/dateUtils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -75,6 +77,7 @@ export function SharedExpenses() {
 
 function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const addSharedExpense = useAddSharedExpense();
+  const addPendingPayment = useAddPendingPayment();
   const { data: people } = usePeople();
   const { data: categories = [] } = useCategories();
 
@@ -85,11 +88,16 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const [participants, setParticipants] = useState<{ person_name: string; amount_owed: number }[]>([]);
   const [newPersonName, setNewPersonName] = useState('');
   const [splitEqual, setSplitEqual] = useState(true);
+  const [paidByMe, setPaidByMe] = useState(true);
+  const [thirdPartyName, setThirdPartyName] = useState('');
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [refundAmount, setRefundAmount] = useState('');
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
   const participantsSum = participants.reduce((s, p) => s + p.amount_owed, 0);
   const totalNum = parseFloat(totalAmount) || 0;
   const exceedsTotal = !splitEqual && participantsSum > totalNum;
+  const missingThirdParty = !paidByMe && !thirdPartyName.trim();
 
   const addParticipant = (name: string) => {
     if (!name.trim() || participants.find((p) => p.person_name === name)) return;
@@ -114,6 +122,7 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const handleSubmit = async () => {
     const total = parseFloat(totalAmount);
     if (!total || participants.length === 0) return;
+    if (missingThirdParty) return;
 
     const finalParticipants = splitEqual
       ? recalcEqualSplit(total, participants)
@@ -124,10 +133,33 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
       description: description || undefined,
       date,
       category_id: categoryId || undefined,
+      paid_by_third_party: !paidByMe,
+      third_party_name: paidByMe ? undefined : thirdPartyName.trim(),
       participants: finalParticipants,
     });
+
+    if (!paidByMe) {
+      setRefundAmount(String(total));
+      setShowRefundDialog(true);
+      return;
+    }
+
     onSuccess();
   };
+
+  const handleAddRefund = async () => {
+    const amount = parseFloat(refundAmount);
+    if (amount > 0) {
+      await addPendingPayment.mutateAsync({
+        description: `Devolver a ${thirdPartyName.trim()}${description ? ` - ${description}` : ''}`,
+        amount,
+        due_date: formatDateToString(new Date()),
+      });
+    }
+    setShowRefundDialog(false);
+    onSuccess();
+  };
+
 
   return (
     <div className="space-y-4">
@@ -149,6 +181,28 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
           placeholder="0"
         />
       </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="paid-by-me">¿Lo pagaste vos?</Label>
+          <Switch id="paid-by-me" checked={paidByMe} onCheckedChange={setPaidByMe} />
+        </div>
+        {!paidByMe && (
+          <div>
+            <Label>¿Quién lo pagó?</Label>
+            <Input
+              value={thirdPartyName}
+              onChange={(e) => setThirdPartyName(e.target.value)}
+              placeholder="Nombre"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              No se descontará de tu balance
+            </p>
+          </div>
+        )}
+      </div>
+
+
 
       <div>
         <Label>Categoría de gasto</Label>
@@ -284,13 +338,51 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
         <p className="text-xs text-destructive">La suma no puede superar el total</p>
       )}
 
+      {missingThirdParty && (
+        <p className="text-xs text-destructive">Indicá quién pagó el gasto</p>
+      )}
+
       <Button
         onClick={handleSubmit}
-        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0 || exceedsTotal}
+        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0 || exceedsTotal || missingThirdParty}
         className="w-full"
       >
         {addSharedExpense.isPending ? 'Guardando...' : 'Registrar gasto compartido'}
       </Button>
+
+      <Dialog open={showRefundDialog} onOpenChange={(o) => { if (!o) { setShowRefundDialog(false); onSuccess(); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¿Querés agregar un pago pendiente a {thirdPartyName.trim()}?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Monto a devolver</Label>
+              <Input
+                type="number"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => { setShowRefundDialog(false); onSuccess(); }}
+              >
+                Omitir
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleAddRefund}
+                disabled={addPendingPayment.isPending || !(parseFloat(refundAmount) > 0)}
+              >
+                Agregar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -308,6 +308,8 @@ export type Database = {
           description: string | null
           id: string
           movement_id: string | null
+          paid_by_third_party: boolean
+          third_party_name: string | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -318,6 +320,8 @@ export type Database = {
           description?: string | null
           id?: string
           movement_id?: string | null
+          paid_by_third_party?: boolean
+          third_party_name?: string | null
           total_amount?: number
           updated_at?: string
           user_id: string
@@ -328,6 +332,8 @@ export type Database = {
           description?: string | null
           id?: string
           movement_id?: string | null
+          paid_by_third_party?: boolean
+          third_party_name?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string
