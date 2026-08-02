@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useCategories } from '@/hooks/useMovements';
-import { usePendingIncome, useAddPendingIncome, useMarkIncomeCollected, useDeletePendingIncome, useUpdatePendingIncome, PendingIncome } from '@/hooks/usePendingIncome';
+import { usePendingIncome, useAddPendingIncome, useMarkIncomeCollected, useDeletePendingIncome, useUpdatePendingIncome, useUpdateInstallmentGroup, PendingIncome } from '@/hooks/usePendingIncome';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
