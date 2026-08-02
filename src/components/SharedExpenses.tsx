@@ -85,7 +85,7 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const [totalAmount, setTotalAmount] = useState('');
   const [date, setDate] = useState(formatDateToString(new Date()));
   const [categoryId, setCategoryId] = useState('');
-  const [participants, setParticipants] = useState<{ person_name: string; amount_owed: number }[]>([]);
+  const [participants, setParticipants] = useState<ParticipantDraft[]>([]);
   const [newPersonName, setNewPersonName] = useState('');
   const [splitEqual, setSplitEqual] = useState(true);
   const [paidByMe, setPaidByMe] = useState(true);
@@ -99,13 +99,44 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const exceedsTotal = !splitEqual && participantsSum > totalNum;
   const missingThirdParty = !paidByMe && !thirdPartyName.trim();
 
+  // Keep installment previews in sync with each participant's share / count
+  useEffect(() => {
+    setParticipants((prev) => {
+      let changed = false;
+      const next = prev.map((p) => {
+        if (!p.installments) {
+          if (p.amounts.length) { changed = true; return { ...p, amounts: [] }; }
+          return p;
+        }
+        const sum = p.amounts.reduce((s, a) => s + a, 0);
+        const inSync =
+          p.amounts.length === p.installments &&
+          Math.abs(sum - p.amount_owed) < 0.5;
+        if (inSync) return p;
+        changed = true;
+        return { ...p, amounts: splitInstallments(p.amount_owed, p.installments) };
+      });
+      return changed ? next : prev;
+    });
+  }, [participants]);
+
+  const installmentsInvalid = participants.some(
+    (p) =>
+      p.installments &&
+      (p.amounts.some((a) => a <= 0) ||
+        Math.abs(p.amounts.reduce((s, a) => s + a, 0) - p.amount_owed) > 0.5)
+  );
+
   const addParticipant = (name: string) => {
     if (!name.trim() || participants.find((p) => p.person_name === name)) return;
-    setParticipants([...participants, { person_name: name.trim(), amount_owed: 0 }]);
+    setParticipants([
+      ...participants,
+      { person_name: name.trim(), amount_owed: 0, installments: null, amounts: [] },
+    ]);
     setNewPersonName('');
   };
 
-  const recalcEqualSplit = (total: number, parts: typeof participants) => {
+  const recalcEqualSplit = (total: number, parts: ParticipantDraft[]) => {
     if (!splitEqual || parts.length === 0) return parts;
     const each = Math.round((total / (parts.length + 1)) * 100) / 100;
     return parts.map((p) => ({ ...p, amount_owed: each }));
@@ -119,10 +150,31 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
     }
   };
 
+  const handleInstallmentAmountChange = (personName: string, index: number, value: string) => {
+    const parsed = parseFloat(value);
+    setParticipants((prev) =>
+      prev.map((p) => {
+        if (p.person_name !== personName || !p.installments) return p;
+        const amounts = [...p.amounts];
+        amounts[index] = isNaN(parsed) ? 0 : parsed;
+        const others = amounts.map((_, i) => i).filter((i) => i !== index);
+        const remaining = p.amount_owed - amounts[index];
+        if (others.length > 0) {
+          const per = Math.round((remaining / others.length) * 100) / 100;
+          others.forEach((i) => { amounts[i] = per; });
+          const diff = Math.round((p.amount_owed - amounts.reduce((s, a) => s + a, 0)) * 100) / 100;
+          const last = others[others.length - 1];
+          amounts[last] = Math.round((amounts[last] + diff) * 100) / 100;
+        }
+        return { ...p, amounts };
+      })
+    );
+  };
+
   const handleSubmit = async () => {
     const total = parseFloat(totalAmount);
     if (!total || participants.length === 0) return;
-    if (missingThirdParty) return;
+    if (missingThirdParty || installmentsInvalid) return;
 
     const finalParticipants = splitEqual
       ? recalcEqualSplit(total, participants)
@@ -135,8 +187,34 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
       category_id: categoryId || undefined,
       paid_by_third_party: !paidByMe,
       third_party_name: paidByMe ? undefined : thirdPartyName.trim(),
-      participants: finalParticipants,
+      participants: finalParticipants.map((p) => ({
+        person_name: p.person_name,
+        amount_owed: p.amount_owed,
+      })),
     });
+
+    // Installment plans for participants paying in cuotas -> pending income
+    const rows = finalParticipants.flatMap((p) => {
+      if (!p.installments) return [];
+      const groupId = crypto.randomUUID();
+      const amounts =
+        p.amounts.length === p.installments
+          ? p.amounts
+          : splitInstallments(p.amount_owed, p.installments);
+      return amounts.map((amt, i) => ({
+        description: `${p.person_name}${description ? ` - ${description}` : ''} (cuota ${i + 1}/${p.installments})`,
+        amount: amt,
+        due_date: formatDateToString(addMonths(parseDateString(date), i + 1)),
+        category_id: null,
+        installment_group_id: groupId,
+        installment_number: i + 1,
+        total_installments: p.installments as number,
+      }));
+    });
+
+    if (rows.length) {
+      await addPendingIncomeBatch.mutateAsync(rows);
+    }
 
     if (!paidByMe) {
       setRefundAmount(String(total));
