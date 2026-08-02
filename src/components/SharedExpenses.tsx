@@ -75,6 +75,7 @@ export function SharedExpenses() {
 
 function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const addSharedExpense = useAddSharedExpense();
+  const addPendingPayment = useAddPendingPayment();
   const { data: people } = usePeople();
   const { data: categories = [] } = useCategories();
 
@@ -85,11 +86,16 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const [participants, setParticipants] = useState<{ person_name: string; amount_owed: number }[]>([]);
   const [newPersonName, setNewPersonName] = useState('');
   const [splitEqual, setSplitEqual] = useState(true);
+  const [paidByMe, setPaidByMe] = useState(true);
+  const [thirdPartyName, setThirdPartyName] = useState('');
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [refundAmount, setRefundAmount] = useState('');
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
   const participantsSum = participants.reduce((s, p) => s + p.amount_owed, 0);
   const totalNum = parseFloat(totalAmount) || 0;
   const exceedsTotal = !splitEqual && participantsSum > totalNum;
+  const missingThirdParty = !paidByMe && !thirdPartyName.trim();
 
   const addParticipant = (name: string) => {
     if (!name.trim() || participants.find((p) => p.person_name === name)) return;
@@ -114,6 +120,7 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const handleSubmit = async () => {
     const total = parseFloat(totalAmount);
     if (!total || participants.length === 0) return;
+    if (missingThirdParty) return;
 
     const finalParticipants = splitEqual
       ? recalcEqualSplit(total, participants)
@@ -124,10 +131,33 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
       description: description || undefined,
       date,
       category_id: categoryId || undefined,
+      paid_by_third_party: !paidByMe,
+      third_party_name: paidByMe ? undefined : thirdPartyName.trim(),
       participants: finalParticipants,
     });
+
+    if (!paidByMe) {
+      setRefundAmount(String(total));
+      setShowRefundDialog(true);
+      return;
+    }
+
     onSuccess();
   };
+
+  const handleAddRefund = async () => {
+    const amount = parseFloat(refundAmount);
+    if (amount > 0) {
+      await addPendingPayment.mutateAsync({
+        description: `Devolver a ${thirdPartyName.trim()}${description ? ` - ${description}` : ''}`,
+        amount,
+        due_date: formatDateToString(new Date()),
+      });
+    }
+    setShowRefundDialog(false);
+    onSuccess();
+  };
+
 
   return (
     <div className="space-y-4">
