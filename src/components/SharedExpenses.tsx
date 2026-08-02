@@ -511,9 +511,15 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
         <p className="text-xs text-destructive">Indicá quién pagó el gasto</p>
       )}
 
+      {installmentsInvalid && (
+        <p className="text-xs text-destructive">
+          Las cuotas deben ser positivas y sumar la parte de cada persona
+        </p>
+      )}
+
       <Button
         onClick={handleSubmit}
-        disabled={addSharedExpense.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0 || exceedsTotal || missingThirdParty}
+        disabled={addSharedExpense.isPending || addPendingIncomeBatch.isPending || !totalAmount || parseFloat(totalAmount) <= 0 || participants.length === 0 || exceedsTotal || missingThirdParty || installmentsInvalid}
         className="w-full"
       >
         {addSharedExpense.isPending ? 'Guardando...' : 'Registrar gasto compartido'}
