@@ -365,7 +365,7 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
                   size="sm"
                   className="text-xs h-7"
                   onClick={() => {
-                    const newParts = [...participants, { person_name: p.name, amount_owed: 0 }];
+                    const newParts: ParticipantDraft[] = [...participants, { person_name: p.name, amount_owed: 0, installments: null, amounts: [] }];
                     const updated = splitEqual
                       ? recalcEqualSplit(parseFloat(totalAmount) || 0, newParts)
                       : newParts;
