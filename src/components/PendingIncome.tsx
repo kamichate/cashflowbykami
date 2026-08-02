@@ -110,7 +110,17 @@ export function PendingIncomeComponent() {
   };
 
   const handleMarkCollected = (income: PendingIncome) => {
-    markCollected.mutate(income);
+    markCollected.mutate(income, {
+      onSuccess: () => {
+        if (income.installment_group_id) {
+          updateInstallmentGroup.mutate({
+            group_id: income.installment_group_id,
+            installment_id: income.id,
+            new_amount: Number(income.amount),
+          });
+        }
+      },
+    });
   };
 
   const uncollectedIncomes = incomes.filter(i => !i.is_collected);
