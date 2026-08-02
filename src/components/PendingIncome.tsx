@@ -236,7 +236,14 @@ export function PendingIncomeComponent() {
                       <StatusIcon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{income.description}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-medium truncate">{income.description}</p>
+                        {income.installment_number && income.total_installments && (
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            cuota {income.installment_number}/{income.total_installments}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {format(parseISO(income.due_date), 'dd MMM yyyy', { locale: es })}
                       </p>
