@@ -28,9 +28,27 @@ import {
 import { useCategories } from '@/hooks/useMovements';
 import { useAddPendingPayment } from '@/hooks/usePendingPayments';
 import { Switch } from '@/components/ui/switch';
+import { useAddPendingIncomeBatch } from '@/hooks/usePendingIncome';
 import { formatDateToString, parseDateString } from '@/lib/dateUtils';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+interface ParticipantDraft {
+  person_name: string;
+  amount_owed: number;
+  installments: number | null;
+  amounts: number[];
+}
+
+function splitInstallments(total: number, count: number): number[] {
+  const per = Math.round((total / count) * 100) / 100;
+  const amounts = Array(count).fill(per);
+  const diff = Math.round((total - per * count) * 100) / 100;
+  amounts[count - 1] = Math.round((per + diff) * 100) / 100;
+  return amounts;
+}
+
+
 
 export function SharedExpenses() {
   const { data: sharedExpenses, isLoading } = useSharedExpenses();
