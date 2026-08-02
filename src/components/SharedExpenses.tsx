@@ -96,6 +96,7 @@ export function SharedExpenses() {
 function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
   const addSharedExpense = useAddSharedExpense();
   const addPendingPayment = useAddPendingPayment();
+  const addPendingIncomeBatch = useAddPendingIncomeBatch();
   const { data: people } = usePeople();
   const { data: categories = [] } = useCategories();
 
