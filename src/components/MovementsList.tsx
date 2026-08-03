@@ -110,6 +110,23 @@ export function MovementsList() {
     return `${typeConfig[type].sign}${formatted}`;
   };
 
+  const formatDateHeader = (dateStr: string) => {
+    const date = parseDateString(dateStr);
+    if (isToday(date)) return 'Hoy';
+    if (isYesterday(date)) return 'Ayer';
+    return format(date, 'dd \'de\' MMMM yyyy', { locale: es });
+  };
+
+  const groupedMovements = useMemo(() => {
+    const sorted = [...movements].sort((a, b) => b.date.localeCompare(a.date));
+    const groups: Record<string, Movement[]> = {};
+    sorted.forEach((mov) => {
+      if (!groups[mov.date]) groups[mov.date] = [];
+      groups[mov.date].push(mov);
+    });
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [movements]);
+
   const filteredCategories = useMemo(() => {
     if (filters.type && filters.type !== 'all') {
       return categories.filter(c => c.type === filters.type);
