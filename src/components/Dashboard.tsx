@@ -72,8 +72,23 @@ const percentageDiff = (current: number, previous: number): number | null => {
 };
 
 export function Dashboard() {
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
   const { data: movements = [] } = useAllMovements();
   const pendingSummary = usePendingMoneySummary();
+
+  const selectedMonthLabel = format(selectedMonth, 'MMMM yyyy', { locale: es });
+  const isCurrentMonth = selectedMonth.getMonth() === new Date().getMonth() &&
+    selectedMonth.getFullYear() === new Date().getFullYear();
+
+  const monthlyStats = useMemo(() => {
+    const current = getMonthStats(movements, selectedMonth);
+    const previous = getMonthStats(movements, subMonths(selectedMonth, 1));
+    return { current, previous };
+  }, [movements, selectedMonth]);
+
+  const incomeDiff = percentageDiff(monthlyStats.current.income, monthlyStats.previous.income);
+  const expenseDiff = percentageDiff(monthlyStats.current.expense, monthlyStats.previous.expense);
+  const netDiff = percentageDiff(monthlyStats.current.net, monthlyStats.previous.net);
 
   const stats = useMemo(() => {
     const now = new Date();
