@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign, ArrowLeftRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
