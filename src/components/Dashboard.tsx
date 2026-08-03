@@ -1,16 +1,17 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   TrendingUp, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
   History, DollarSign, AlertCircle, Gem, Sparkles, LineChart as LineChartIcon,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
   AreaChart, Area, XAxis, YAxis,
 } from 'recharts';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAllMovements, Category } from '@/hooks/useMovements';
 import { usePendingMoneySummary } from '@/hooks/useSharedExpenses';
 import { usePendingPayments } from '@/hooks/usePendingPayments';
