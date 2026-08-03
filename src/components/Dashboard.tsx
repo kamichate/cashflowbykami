@@ -48,6 +48,29 @@ const getBalanceImpact = (m: any): number => {
   }
 };
 
+const getMonthStats = (movements: any[], date: Date) => {
+  const month = date.getMonth();
+  const year = date.getFullYear();
+  const monthlyMovements = movements.filter((m) => {
+    const d = parseDateString(m.date);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
+
+  const income = monthlyMovements
+    .filter((m) => m.type === 'income')
+    .reduce((sum, m) => sum + Number(m.amount), 0);
+  const expense = monthlyMovements
+    .filter((m) => m.type === 'expense')
+    .reduce((sum, m) => sum + Number(m.amount), 0);
+
+  return { income, expense, net: income - expense };
+};
+
+const percentageDiff = (current: number, previous: number): number | null => {
+  if (previous === 0) return current === 0 ? 0 : null;
+  return ((current - previous) / previous) * 100;
+};
+
 export function Dashboard() {
   const { data: movements = [] } = useAllMovements();
   const pendingSummary = usePendingMoneySummary();
