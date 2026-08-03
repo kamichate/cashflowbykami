@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign, ArrowLeftRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -109,6 +109,23 @@ export function MovementsList() {
     }
     return `${typeConfig[type].sign}${formatted}`;
   };
+
+  const formatDateHeader = (dateStr: string) => {
+    const date = parseDateString(dateStr);
+    if (isToday(date)) return 'Hoy';
+    if (isYesterday(date)) return 'Ayer';
+    return format(date, 'dd \'de\' MMMM yyyy', { locale: es });
+  };
+
+  const groupedMovements = useMemo(() => {
+    const sorted = [...movements].sort((a, b) => b.date.localeCompare(a.date));
+    const groups: Record<string, Movement[]> = {};
+    sorted.forEach((mov) => {
+      if (!groups[mov.date]) groups[mov.date] = [];
+      groups[mov.date].push(mov);
+    });
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [movements]);
 
   const filteredCategories = useMemo(() => {
     if (filters.type && filters.type !== 'all') {
@@ -292,102 +309,114 @@ export function MovementsList() {
                 {activeFiltersCount > 0 ? 'No hay movimientos con estos filtros' : 'No hay movimientos aún'}
               </p>
             ) : (
-              <div className="space-y-3">
-                {movements.map((mov) => {
-                  const config = typeConfig[mov.type as MovementType];
-                  const isWithdrawal = mov.is_withdrawal;
-                  const isInitialSavings = mov.is_initial_savings;
-                  const isUsd = mov.currency === 'USD';
-                  
-                  const Icon = mov.type === 'savings' 
-                    ? (isInitialSavings ? Archive : (isWithdrawal ? ArrowUpFromLine : ArrowDownToLine))
-                    : config.icon;
-                  
-                  return (
-                    <div
-                      key={mov.id}
-                      className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors animate-slide-up"
-                    >
-                      <div className={cn('p-1.5 sm:p-2 rounded-lg shrink-0', isWithdrawal ? 'bg-warning-light' : config.bgColor)}>
-                        <Icon className={cn('w-4 h-4', isWithdrawal ? 'text-warning' : config.color)} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                            <p className="text-sm sm:text-base font-medium truncate">
-                              {mov.type === 'transfer'
-                                ? 'Transferencia'
-                                : mov.type === 'yield'
-                                  ? (mov.category?.name || 'Rendimiento')
-                                  : (mov.category?.name || 'Sin categoría')}
-                            </p>
-                            {isInitialSavings && (
-                              <Badge variant="outline" className="text-[10px] h-4 px-1 text-muted-foreground border-muted-foreground/30">
-                                Inicial
-                              </Badge>
-                            )}
-                            {isWithdrawal && (
-                              <Badge variant="outline" className="text-[10px] h-4 px-1 text-warning border-warning/30">
-                                Retiro
-                              </Badge>
-                            )}
-                            {isUsd && (
-                              <Badge variant="outline" className="text-[10px] h-4 px-1 text-savings border-savings/30">
-                                <DollarSign className="w-2 h-2 mr-0.5" />
-                                USD
-                              </Badge>
-                            )}
-                          </div>
-                          <p className={cn('text-xs sm:text-sm font-semibold whitespace-nowrap', isWithdrawal ? 'text-warning' : config.color)}>
-                            {formatAmount(mov)}
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 text-xs sm:text-sm text-muted-foreground">
-                          <span className="truncate">{mov.detail || '—'}</span>
-                          <span className="whitespace-nowrap">
-                            {format(parseDateString(mov.date), 'dd MMM', { locale: es })}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-0.5 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground"
-                          onClick={() => setEditingMovement(mov)}
-                        >
-                          <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive"
-                              disabled={deleteMovement.isPending}
-                            >
-                              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar este movimiento?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteMovement.mutate(mov.id)}>
-                                Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
+              <div className="space-y-5">
+                {groupedMovements.map(([date, dayMovements]) => (
+                  <div key={date} className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {formatDateHeader(date)}
+                      </span>
+                      <div className="flex-1 h-px bg-border/60" />
                     </div>
-                  );
-                })}
+                    <div className="space-y-3">
+                      {dayMovements.map((mov) => {
+                        const config = typeConfig[mov.type as MovementType];
+                        const isWithdrawal = mov.is_withdrawal;
+                        const isInitialSavings = mov.is_initial_savings;
+                        const isUsd = mov.currency === 'USD';
+
+                        const Icon = mov.type === 'savings'
+                          ? (isInitialSavings ? Archive : (isWithdrawal ? ArrowUpFromLine : ArrowDownToLine))
+                          : config.icon;
+
+                        return (
+                          <div
+                            key={mov.id}
+                            className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors animate-slide-up"
+                          >
+                            <div className={cn('p-1.5 sm:p-2 rounded-lg shrink-0', isWithdrawal ? 'bg-warning-light' : config.bgColor)}>
+                              <Icon className={cn('w-4 h-4', isWithdrawal ? 'text-warning' : config.color)} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                  <p className="text-sm sm:text-base font-medium truncate">
+                                    {mov.type === 'transfer'
+                                      ? 'Transferencia'
+                                      : mov.type === 'yield'
+                                        ? (mov.category?.name || 'Rendimiento')
+                                        : (mov.category?.name || 'Sin categoría')}
+                                  </p>
+                                  {isInitialSavings && (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-muted-foreground border-muted-foreground/30">
+                                      Inicial
+                                    </Badge>
+                                  )}
+                                  {isWithdrawal && (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-warning border-warning/30">
+                                      Retiro
+                                    </Badge>
+                                  )}
+                                  {isUsd && (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1 text-savings border-savings/30">
+                                      <DollarSign className="w-2 h-2 mr-0.5" />
+                                      USD
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className={cn('text-xs sm:text-sm font-semibold whitespace-nowrap', isWithdrawal ? 'text-warning' : config.color)}>
+                                  {formatAmount(mov)}
+                                </p>
+                              </div>
+                              <div className="flex items-center justify-between gap-2 text-xs sm:text-sm text-muted-foreground">
+                                <span className="truncate">{mov.detail || '—'}</span>
+                                <span className="whitespace-nowrap">
+                                  {format(parseDateString(mov.date), 'dd MMM', { locale: es })}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-0.5 shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground"
+                                onClick={() => setEditingMovement(mov)}
+                              >
+                                <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive"
+                                    disabled={deleteMovement.isPending}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Eliminar este movimiento?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta acción no se puede deshacer.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteMovement.mutate(mov.id)}>
+                                      Eliminar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </ScrollArea>
