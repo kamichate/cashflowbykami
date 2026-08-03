@@ -512,7 +512,7 @@ export function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground">Ingresos</p>
             <p className="text-sm font-semibold text-income mt-0.5">
-              {formatCurrency(stats.income)}
+              {formatCurrency(monthlyStats.current.income)}
             </p>
           </CardContent>
         </Card>
@@ -523,7 +523,7 @@ export function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground">Gastos</p>
             <p className="text-sm font-semibold text-expense mt-0.5">
-              {formatCurrency(stats.expense)}
+              {formatCurrency(monthlyStats.current.expense)}
             </p>
           </CardContent>
         </Card>
