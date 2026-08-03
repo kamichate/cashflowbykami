@@ -308,6 +308,118 @@ export function Dashboard() {
         </Card>
       </div>
 
+      {/* Resumen del mes */}
+      <Card className="glass-card">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <LineChartIcon className="w-4 h-4 text-primary" />
+              Resumen del mes
+              {!isCurrentMonth && (
+                <span className="text-[10px] font-normal text-muted-foreground capitalize">
+                  {selectedMonthLabel}
+                </span>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-xs font-medium capitalize min-w-[90px] text-center">
+                {selectedMonthLabel}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}
+                disabled={isCurrentMonth}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 space-y-4">
+          {/* Income / Expense / Net */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 rounded-lg bg-income-light/50 text-center">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Ingresos</p>
+              <p className="text-sm font-bold text-income">{formatCurrency(monthlyStats.current.income)}</p>
+              {incomeDiff !== null && (
+                <p className={cn('text-[10px] mt-0.5 flex items-center justify-center gap-0.5', incomeDiff >= 0 ? 'text-income' : 'text-expense')}>
+                  {incomeDiff >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+                  {Math.abs(incomeDiff).toFixed(0)}% vs mes ant.
+                </p>
+              )}
+            </div>
+            <div className="p-3 rounded-lg bg-expense-light/50 text-center">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Gastos</p>
+              <p className="text-sm font-bold text-expense">{formatCurrency(monthlyStats.current.expense)}</p>
+              {expenseDiff !== null && (
+                <p className={cn('text-[10px] mt-0.5 flex items-center justify-center gap-0.5', expenseDiff <= 0 ? 'text-income' : 'text-expense')}>
+                  {expenseDiff <= 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <ArrowUpRight className="w-2.5 h-2.5" />}
+                  {Math.abs(expenseDiff).toFixed(0)}% vs mes ant.
+                </p>
+              )}
+            </div>
+            <div className={cn('p-3 rounded-lg text-center', monthlyStats.current.net >= 0 ? 'bg-income-light/50' : 'bg-expense-light/50')}>
+              <p className="text-[10px] text-muted-foreground mb-0.5">Resultado</p>
+              <p className={cn('text-sm font-bold', monthlyStats.current.net >= 0 ? 'text-income' : 'text-expense')}>
+                {formatCurrency(monthlyStats.current.net)}
+              </p>
+              {netDiff !== null && (
+                <p className={cn('text-[10px] mt-0.5 flex items-center justify-center gap-0.5', netDiff >= 0 ? 'text-income' : 'text-expense')}>
+                  {netDiff >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+                  {Math.abs(netDiff).toFixed(0)}% vs mes ant.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Ratio bar */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Relación ingreso / gasto</span>
+              <span className="text-muted-foreground">
+                {monthlyStats.current.income + monthlyStats.current.expense > 0
+                  ? `${((monthlyStats.current.income / (monthlyStats.current.income + monthlyStats.current.expense)) * 100).toFixed(0)}% ingreso`
+                  : 'Sin movimientos'}
+              </span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-muted/50 overflow-hidden flex">
+              {monthlyStats.current.income + monthlyStats.current.expense > 0 ? (
+                <>
+                  <div
+                    className="h-full bg-income"
+                    style={{
+                      width: `${(monthlyStats.current.income / (monthlyStats.current.income + monthlyStats.current.expense)) * 100}%`,
+                    }}
+                  />
+                  <div
+                    className="h-full bg-expense"
+                    style={{
+                      width: `${(monthlyStats.current.expense / (monthlyStats.current.income + monthlyStats.current.expense)) * 100}%`,
+                    }}
+                  />
+                </>
+              ) : (
+                <div className="h-full w-full bg-muted" />
+              )}
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span className="text-income">Ingreso {formatCurrency(monthlyStats.current.income)}</span>
+              <span className="text-expense">Gasto {formatCurrency(monthlyStats.current.expense)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Donut: Gastos del mes por categoría */}
       <Card className="glass-card">
         <CardHeader className="pb-2 pt-4 px-4">
