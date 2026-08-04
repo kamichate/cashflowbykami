@@ -67,6 +67,7 @@ export function MovementsList() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<MovementFilters>({});
   const [dateRange, setDateRange] = useState<{ start?: Date; end?: Date }>({});
+  const [searchTerm, setSearchTerm] = useState('');
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
 
   const { data: categories = [] } = useCategories();
