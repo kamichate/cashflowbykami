@@ -21,6 +21,15 @@ const navItems = [
   { id: 'settings', label: 'Categorías', icon: Settings },
 ];
 
+function PendingBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold leading-none">
+      {count >= 10 ? '9+' : count}
+    </span>
+  );
+}
+
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { signOut } = useAuth();
