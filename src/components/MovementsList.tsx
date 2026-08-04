@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign, ArrowLeftRight, Sparkles } from 'lucide-react';
+import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign, ArrowLeftRight, Sparkles, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
