@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { FloatingActionButton } from './FloatingActionButton';
+import { usePendingNotificationsCount } from '@/hooks/usePendingNotificationsCount';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -20,9 +21,19 @@ const navItems = [
   { id: 'settings', label: 'Categorías', icon: Settings },
 ];
 
+function PendingBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold leading-none">
+      {count >= 10 ? '9+' : count}
+    </span>
+  );
+}
+
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { signOut } = useAuth();
+  const pendingCount = usePendingNotificationsCount();
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
@@ -56,6 +67,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
             >
               <Icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
+              {item.id === 'payments' && <PendingBadge count={pendingCount} />}
             </button>
           );
         })}
@@ -127,7 +139,14 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
-                <Icon className={cn('w-5 h-5', isActive && 'text-primary')} />
+                <div className="relative">
+                  <Icon className={cn('w-5 h-5', isActive && 'text-primary')} />
+                  {item.id === 'payments' && (
+                    <span className="absolute -top-2 -right-2">
+                      <PendingBadge count={pendingCount} />
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs font-medium">{item.label}</span>
               </button>
             );
