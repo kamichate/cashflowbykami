@@ -1,19 +1,19 @@
 import { useMemo } from 'react';
 import { usePendingPayments } from './usePendingPayments';
 import { usePendingIncome } from './usePendingIncome';
-import { isPast, isToday, parseISO } from 'date-fns';
+import { isPast, isToday } from 'date-fns';
+import { parseDateString, getToday } from '@/lib/dateUtils';
 
 export function usePendingNotificationsCount() {
   const { data: payments = [] } = usePendingPayments();
   const { data: income = [] } = usePendingIncome();
 
   const count = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getToday();
 
     const overdueOrDue = (dueDate?: string) => {
       if (!dueDate) return false;
-      const date = parseISO(dueDate);
+      const date = parseDateString(dueDate);
       return isPast(date) || isToday(date);
     };
 
@@ -29,3 +29,4 @@ export function usePendingNotificationsCount() {
 
   return count;
 }
+
