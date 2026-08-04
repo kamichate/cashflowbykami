@@ -346,6 +346,10 @@ export function MovementsList() {
               <p className="text-center text-muted-foreground py-8">
                 {activeFiltersCount > 0 ? 'No hay movimientos con estos filtros' : 'No hay movimientos aún'}
               </p>
+            ) : filteredMovements.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8 text-sm">
+                Sin resultados para '{searchTerm}'
+              </p>
             ) : (
               <div className="space-y-5">
                 {groupedMovements.map(([date, dayMovements]) => (
