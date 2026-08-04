@@ -67,6 +67,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
             >
               <Icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
+              {item.id === 'payments' && <PendingBadge count={pendingCount} />}
             </button>
           );
         })}
