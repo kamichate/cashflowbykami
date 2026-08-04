@@ -139,7 +139,14 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
-                <Icon className={cn('w-5 h-5', isActive && 'text-primary')} />
+                <div className="relative">
+                  <Icon className={cn('w-5 h-5', isActive && 'text-primary')} />
+                  {item.id === 'payments' && (
+                    <span className="absolute -top-2 -right-2">
+                      <PendingBadge count={pendingCount} />
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs font-medium">{item.label}</span>
               </button>
             );
