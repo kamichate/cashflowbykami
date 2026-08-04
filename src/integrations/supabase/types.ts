@@ -17,6 +17,7 @@ export type Database = {
       categories: {
         Row: {
           created_at: string
+          icon: string | null
           id: string
           name: string
           type: Database["public"]["Enums"]["movement_type"]
@@ -24,6 +25,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          icon?: string | null
           id?: string
           name: string
           type: Database["public"]["Enums"]["movement_type"]
@@ -31,6 +33,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          icon?: string | null
           id?: string
           name?: string
           type?: Database["public"]["Enums"]["movement_type"]
