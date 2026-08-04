@@ -382,13 +382,21 @@ export function MovementsList() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                  <p className="text-sm sm:text-base font-medium truncate">
-                                    {mov.type === 'transfer'
-                                      ? 'Transferencia'
-                                      : mov.type === 'yield'
-                                        ? (mov.category?.name || 'Rendimiento')
-                                        : (mov.category?.name || 'Sin categoría')}
-                                  </p>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    {mov.category?.icon ? (
+                                      <span className="text-sm leading-none shrink-0" aria-hidden="true">{mov.category.icon}</span>
+                                    ) : (
+                                      <Tag className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                    )}
+                                    <p className="text-sm sm:text-base font-medium truncate">
+                                      {mov.type === 'transfer'
+                                        ? 'Transferencia'
+                                        : mov.type === 'yield'
+                                          ? (mov.category?.name || 'Rendimiento')
+                                          : (mov.category?.name || 'Sin categoría')}
+                                    </p>
+                                  </div>
+
                                   {isInitialSavings && (
                                     <Badge variant="outline" className="text-[10px] h-4 px-1 text-muted-foreground border-muted-foreground/30">
                                       Inicial
