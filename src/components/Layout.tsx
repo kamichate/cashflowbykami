@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { FloatingActionButton } from './FloatingActionButton';
+import { usePendingNotificationsCount } from '@/hooks/usePendingNotificationsCount';
 
 interface LayoutProps {
   children: React.ReactNode;
