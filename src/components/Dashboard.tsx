@@ -450,7 +450,7 @@ export function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          {stats.categoryBreakdown.length === 0 ? (
+          {monthlyCategoryBreakdown.length === 0 ? (
             <p className="text-center text-muted-foreground text-xs py-8">
               Sin gastos este mes
             </p>
@@ -460,7 +460,7 @@ export function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={stats.categoryBreakdown}
+                      data={monthlyCategoryBreakdown}
                       dataKey="total"
                       nameKey="name"
                       cx="50%"
@@ -470,7 +470,7 @@ export function Dashboard() {
                       paddingAngle={2}
                       stroke="none"
                     >
-                      {stats.categoryBreakdown.map((_, i) => (
+                      {monthlyCategoryBreakdown.map((_, i) => (
                         <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
                       ))}
                     </Pie>
@@ -500,7 +500,7 @@ export function Dashboard() {
                 </div>
               </div>
               <div className="w-full sm:w-1/2 space-y-1.5 max-h-[200px] overflow-y-auto">
-                {stats.categoryBreakdown.map((c, i) => {
+                {monthlyCategoryBreakdown.map((c, i) => {
                   const pct = totalExpensesMonth > 0 ? (c.total / totalExpensesMonth) * 100 : 0;
                   return (
                     <div key={c.name} className="flex items-center justify-between gap-2 text-xs">
