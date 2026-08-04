@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign, ArrowLeftRight, Sparkles } from 'lucide-react';
+import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign, ArrowLeftRight, Sparkles, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -67,6 +67,7 @@ export function MovementsList() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<MovementFilters>({});
   const [dateRange, setDateRange] = useState<{ start?: Date; end?: Date }>({});
+  const [searchTerm, setSearchTerm] = useState('');
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
 
   const { data: categories = [] } = useCategories();
@@ -91,6 +92,11 @@ export function MovementsList() {
   const clearFilters = () => {
     setFilters({});
     setDateRange({});
+    setSearchTerm('');
+  };
+
+  const normalizeText = (text?: string) => {
+    return (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   };
 
   const formatAmount = (movement: Movement) => {
@@ -117,15 +123,25 @@ export function MovementsList() {
     return format(date, 'dd \'de\' MMMM yyyy', { locale: es });
   };
 
+  const filteredMovements = useMemo(() => {
+    if (!searchTerm.trim()) return movements;
+    const term = normalizeText(searchTerm);
+    return movements.filter((mov) => {
+      const detail = normalizeText(mov.detail);
+      const categoryName = normalizeText(mov.category?.name);
+      return detail.includes(term) || categoryName.includes(term);
+    });
+  }, [movements, searchTerm]);
+
   const groupedMovements = useMemo(() => {
-    const sorted = [...movements].sort((a, b) => b.date.localeCompare(a.date));
+    const sorted = [...filteredMovements].sort((a, b) => b.date.localeCompare(a.date));
     const groups: Record<string, Movement[]> = {};
     sorted.forEach((mov) => {
       if (!groups[mov.date]) groups[mov.date] = [];
       groups[mov.date].push(mov);
     });
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  }, [movements]);
+  }, [filteredMovements]);
 
   const filteredCategories = useMemo(() => {
     if (filters.type && filters.type !== 'all') {
@@ -164,6 +180,28 @@ export function MovementsList() {
                 </Badge>
               )}
             </Button>
+          </div>
+
+          {/* Search */}
+          <div className="relative mt-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por descripción o categoría..."
+              className="w-full h-10 pl-9 pr-9 rounded-lg border border-border/50 bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-colors"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Limpiar búsqueda"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {/* Filters Panel */}
@@ -307,6 +345,10 @@ export function MovementsList() {
             {movements.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 {activeFiltersCount > 0 ? 'No hay movimientos con estos filtros' : 'No hay movimientos aún'}
+              </p>
+            ) : filteredMovements.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8 text-sm">
+                Sin resultados para '{searchTerm}'
               </p>
             ) : (
               <div className="space-y-5">
