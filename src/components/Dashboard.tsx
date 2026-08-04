@@ -1,16 +1,17 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   TrendingUp, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
   History, DollarSign, AlertCircle, Gem, Sparkles, LineChart as LineChartIcon,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
   AreaChart, Area, XAxis, YAxis,
 } from 'recharts';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAllMovements, Category } from '@/hooks/useMovements';
 import { usePendingMoneySummary } from '@/hooks/useSharedExpenses';
 import { usePendingPayments } from '@/hooks/usePendingPayments';
@@ -47,9 +48,68 @@ const getBalanceImpact = (m: any): number => {
   }
 };
 
+const getMonthStats = (movements: any[], date: Date) => {
+  const month = date.getMonth();
+  const year = date.getFullYear();
+  const monthlyMovements = movements.filter((m) => {
+    const d = parseDateString(m.date);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
+
+  const income = monthlyMovements
+    .filter((m) => m.type === 'income')
+    .reduce((sum, m) => sum + Number(m.amount), 0);
+  const expense = monthlyMovements
+    .filter((m) => m.type === 'expense')
+    .reduce((sum, m) => sum + Number(m.amount), 0);
+
+  return { income, expense, net: income - expense };
+};
+
+const percentageDiff = (current: number, previous: number): number | null => {
+  if (previous === 0) return current === 0 ? 0 : null;
+  return ((current - previous) / previous) * 100;
+};
+
 export function Dashboard() {
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
   const { data: movements = [] } = useAllMovements();
   const pendingSummary = usePendingMoneySummary();
+
+  const selectedMonthLabel = format(selectedMonth, 'MMMM yyyy', { locale: es });
+  const isCurrentMonth = selectedMonth.getMonth() === new Date().getMonth() &&
+    selectedMonth.getFullYear() === new Date().getFullYear();
+
+  const monthlyStats = useMemo(() => {
+    const current = getMonthStats(movements, selectedMonth);
+    const previous = getMonthStats(movements, subMonths(selectedMonth, 1));
+    return { current, previous };
+  }, [movements, selectedMonth]);
+
+  const incomeDiff = percentageDiff(monthlyStats.current.income, monthlyStats.previous.income);
+  const expenseDiff = percentageDiff(monthlyStats.current.expense, monthlyStats.previous.expense);
+  const netDiff = percentageDiff(monthlyStats.current.net, monthlyStats.previous.net);
+
+  const monthlyCategoryBreakdown = useMemo(() => {
+    const expenseByCat = new Map<string, { name: string; total: number }>();
+    movements
+      .filter((m) => {
+        const d = parseDateString(m.date);
+        return d.getMonth() === selectedMonth.getMonth() &&
+          d.getFullYear() === selectedMonth.getFullYear() &&
+          m.type === 'expense' && m.category;
+      })
+      .forEach((m) => {
+        const cat = m.category as Category;
+        const prev = expenseByCat.get(cat.id) || { name: cat.name, total: 0 };
+        const catAmount = Number(m.personal_amount ?? m.amount);
+        prev.total += catAmount;
+        expenseByCat.set(cat.id, prev);
+      });
+    return [...expenseByCat.values()]
+      .filter((c) => c.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [movements, selectedMonth]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -152,7 +212,7 @@ export function Dashboard() {
     return months;
   }, [movements]);
 
-  const totalExpensesMonth = stats.categoryBreakdown.reduce((s, c) => s + c.total, 0);
+  const totalExpensesMonth = monthlyCategoryBreakdown.reduce((s, c) => s + c.total, 0);
 
   const totalPending = pendingSummary?.total || 0;
 
@@ -269,6 +329,118 @@ export function Dashboard() {
         </Card>
       </div>
 
+      {/* Resumen del mes */}
+      <Card className="glass-card">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <LineChartIcon className="w-4 h-4 text-primary" />
+              Resumen del mes
+              {!isCurrentMonth && (
+                <span className="text-[10px] font-normal text-muted-foreground capitalize">
+                  {selectedMonthLabel}
+                </span>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-xs font-medium capitalize min-w-[90px] text-center">
+                {selectedMonthLabel}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}
+                disabled={isCurrentMonth}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 space-y-4">
+          {/* Income / Expense / Net */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 rounded-lg bg-income-light/50 text-center">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Ingresos</p>
+              <p className="text-sm font-bold text-income">{formatCurrency(monthlyStats.current.income)}</p>
+              {incomeDiff !== null && (
+                <p className={cn('text-[10px] mt-0.5 flex items-center justify-center gap-0.5', incomeDiff >= 0 ? 'text-income' : 'text-expense')}>
+                  {incomeDiff >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+                  {Math.abs(incomeDiff).toFixed(0)}% vs mes ant.
+                </p>
+              )}
+            </div>
+            <div className="p-3 rounded-lg bg-expense-light/50 text-center">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Gastos</p>
+              <p className="text-sm font-bold text-expense">{formatCurrency(monthlyStats.current.expense)}</p>
+              {expenseDiff !== null && (
+                <p className={cn('text-[10px] mt-0.5 flex items-center justify-center gap-0.5', expenseDiff <= 0 ? 'text-income' : 'text-expense')}>
+                  {expenseDiff <= 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <ArrowUpRight className="w-2.5 h-2.5" />}
+                  {Math.abs(expenseDiff).toFixed(0)}% vs mes ant.
+                </p>
+              )}
+            </div>
+            <div className={cn('p-3 rounded-lg text-center', monthlyStats.current.net >= 0 ? 'bg-income-light/50' : 'bg-expense-light/50')}>
+              <p className="text-[10px] text-muted-foreground mb-0.5">Resultado</p>
+              <p className={cn('text-sm font-bold', monthlyStats.current.net >= 0 ? 'text-income' : 'text-expense')}>
+                {formatCurrency(monthlyStats.current.net)}
+              </p>
+              {netDiff !== null && (
+                <p className={cn('text-[10px] mt-0.5 flex items-center justify-center gap-0.5', netDiff >= 0 ? 'text-income' : 'text-expense')}>
+                  {netDiff >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+                  {Math.abs(netDiff).toFixed(0)}% vs mes ant.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Ratio bar */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Relación ingreso / gasto</span>
+              <span className="text-muted-foreground">
+                {monthlyStats.current.income + monthlyStats.current.expense > 0
+                  ? `${((monthlyStats.current.income / (monthlyStats.current.income + monthlyStats.current.expense)) * 100).toFixed(0)}% ingreso`
+                  : 'Sin movimientos'}
+              </span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-muted/50 overflow-hidden flex">
+              {monthlyStats.current.income + monthlyStats.current.expense > 0 ? (
+                <>
+                  <div
+                    className="h-full bg-income"
+                    style={{
+                      width: `${(monthlyStats.current.income / (monthlyStats.current.income + monthlyStats.current.expense)) * 100}%`,
+                    }}
+                  />
+                  <div
+                    className="h-full bg-expense"
+                    style={{
+                      width: `${(monthlyStats.current.expense / (monthlyStats.current.income + monthlyStats.current.expense)) * 100}%`,
+                    }}
+                  />
+                </>
+              ) : (
+                <div className="h-full w-full bg-muted" />
+              )}
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span className="text-income">Ingreso {formatCurrency(monthlyStats.current.income)}</span>
+              <span className="text-expense">Gasto {formatCurrency(monthlyStats.current.expense)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Donut: Gastos del mes por categoría */}
       <Card className="glass-card">
         <CardHeader className="pb-2 pt-4 px-4">
@@ -278,7 +450,7 @@ export function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          {stats.categoryBreakdown.length === 0 ? (
+          {monthlyCategoryBreakdown.length === 0 ? (
             <p className="text-center text-muted-foreground text-xs py-8">
               Sin gastos este mes
             </p>
@@ -288,7 +460,7 @@ export function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={stats.categoryBreakdown}
+                      data={monthlyCategoryBreakdown}
                       dataKey="total"
                       nameKey="name"
                       cx="50%"
@@ -298,7 +470,7 @@ export function Dashboard() {
                       paddingAngle={2}
                       stroke="none"
                     >
-                      {stats.categoryBreakdown.map((_, i) => (
+                      {monthlyCategoryBreakdown.map((_, i) => (
                         <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
                       ))}
                     </Pie>
@@ -328,7 +500,7 @@ export function Dashboard() {
                 </div>
               </div>
               <div className="w-full sm:w-1/2 space-y-1.5 max-h-[200px] overflow-y-auto">
-                {stats.categoryBreakdown.map((c, i) => {
+                {monthlyCategoryBreakdown.map((c, i) => {
                   const pct = totalExpensesMonth > 0 ? (c.total / totalExpensesMonth) * 100 : 0;
                   return (
                     <div key={c.name} className="flex items-center justify-between gap-2 text-xs">
@@ -361,7 +533,7 @@ export function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground">Ingresos</p>
             <p className="text-sm font-semibold text-income mt-0.5">
-              {formatCurrency(stats.income)}
+              {formatCurrency(monthlyStats.current.income)}
             </p>
           </CardContent>
         </Card>
@@ -372,7 +544,7 @@ export function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground">Gastos</p>
             <p className="text-sm font-semibold text-expense mt-0.5">
-              {formatCurrency(stats.expense)}
+              {formatCurrency(monthlyStats.current.expense)}
             </p>
           </CardContent>
         </Card>
