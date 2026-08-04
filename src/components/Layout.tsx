@@ -33,6 +33,7 @@ function PendingBadge({ count }: { count: number }) {
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { signOut } = useAuth();
+  const pendingCount = usePendingNotificationsCount();
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
