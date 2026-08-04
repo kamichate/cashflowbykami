@@ -92,6 +92,11 @@ export function MovementsList() {
   const clearFilters = () => {
     setFilters({});
     setDateRange({});
+    setSearchTerm('');
+  };
+
+  const normalizeText = (text?: string) => {
+    return (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   };
 
   const formatAmount = (movement: Movement) => {
