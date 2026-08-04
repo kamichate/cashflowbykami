@@ -212,7 +212,7 @@ export function Dashboard() {
     return months;
   }, [movements]);
 
-  const totalExpensesMonth = stats.categoryBreakdown.reduce((s, c) => s + c.total, 0);
+  const totalExpensesMonth = monthlyCategoryBreakdown.reduce((s, c) => s + c.total, 0);
 
   const totalPending = pendingSummary?.total || 0;
 
