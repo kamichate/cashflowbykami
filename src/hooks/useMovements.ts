@@ -10,8 +10,10 @@ export interface Category {
   user_id: string;
   name: string;
   type: MovementType;
+  icon?: string | null;
   created_at: string;
 }
+
 
 export interface Movement {
   id: string;
