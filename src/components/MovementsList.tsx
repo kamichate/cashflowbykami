@@ -123,15 +123,25 @@ export function MovementsList() {
     return format(date, 'dd \'de\' MMMM yyyy', { locale: es });
   };
 
+  const filteredMovements = useMemo(() => {
+    if (!searchTerm.trim()) return movements;
+    const term = normalizeText(searchTerm);
+    return movements.filter((mov) => {
+      const detail = normalizeText(mov.detail);
+      const categoryName = normalizeText(mov.category?.name);
+      return detail.includes(term) || categoryName.includes(term);
+    });
+  }, [movements, searchTerm]);
+
   const groupedMovements = useMemo(() => {
-    const sorted = [...movements].sort((a, b) => b.date.localeCompare(a.date));
+    const sorted = [...filteredMovements].sort((a, b) => b.date.localeCompare(a.date));
     const groups: Record<string, Movement[]> = {};
     sorted.forEach((mov) => {
       if (!groups[mov.date]) groups[mov.date] = [];
       groups[mov.date].push(mov);
     });
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  }, [movements]);
+  }, [filteredMovements]);
 
   const filteredCategories = useMemo(() => {
     if (filters.type && filters.type !== 'all') {
