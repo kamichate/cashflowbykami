@@ -90,6 +90,27 @@ export function Dashboard() {
   const expenseDiff = percentageDiff(monthlyStats.current.expense, monthlyStats.previous.expense);
   const netDiff = percentageDiff(monthlyStats.current.net, monthlyStats.previous.net);
 
+  const monthlyCategoryBreakdown = useMemo(() => {
+    const expenseByCat = new Map<string, { name: string; total: number }>();
+    movements
+      .filter((m) => {
+        const d = parseDateString(m.date);
+        return d.getMonth() === selectedMonth.getMonth() &&
+          d.getFullYear() === selectedMonth.getFullYear() &&
+          m.type === 'expense' && m.category;
+      })
+      .forEach((m) => {
+        const cat = m.category as Category;
+        const prev = expenseByCat.get(cat.id) || { name: cat.name, total: 0 };
+        const catAmount = Number(m.personal_amount ?? m.amount);
+        prev.total += catAmount;
+        expenseByCat.set(cat.id, prev);
+      });
+    return [...expenseByCat.values()]
+      .filter((c) => c.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [movements, selectedMonth]);
+
   const stats = useMemo(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
