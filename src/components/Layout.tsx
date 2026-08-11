@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Home, BarChart3, Settings, LogOut, Menu, X, Wallet, Users, CreditCard, PiggyBank } from 'lucide-react';
+import { Home, BarChart3, Settings, LogOut, Menu, X, Wallet, Users, CreditCard, PiggyBank, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { FloatingActionButton } from './FloatingActionButton';
+import { useTheme } from '@/lib/theme';
 import { usePendingNotificationsCount } from '@/hooks/usePendingNotificationsCount';
 
 interface LayoutProps {
@@ -21,6 +22,22 @@ const navItems = [
   { id: 'summary', label: 'Resumen', icon: BarChart3 },
   { id: 'settings', label: 'Categorías', icon: Settings },
 ];
+
+function ThemeToggle({ className }: { className?: string }) {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={className}
+      onClick={toggleTheme}
+      aria-label={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
+      title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+    >
+      {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+    </Button>
+  );
+}
 
 function PendingBadge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -44,6 +61,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
             <Wallet className="w-5 h-5 text-primary-foreground" />
           </div>
           <span className="font-bold text-lg">Finanzas</span>
+          <ThemeToggle className="ml-auto" />
         </div>
       </div>
       
@@ -99,6 +117,8 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
             <span className="font-bold">Finanzas</span>
           </div>
           
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -109,6 +129,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
               <NavContent />
             </SheetContent>
           </Sheet>
+          </div>
         </div>
       </header>
 
