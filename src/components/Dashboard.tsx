@@ -16,6 +16,8 @@ import { useAllMovements, Category } from '@/hooks/useMovements';
 import { usePendingMoneySummary } from '@/hooks/useSharedExpenses';
 import { usePendingPayments } from '@/hooks/usePendingPayments';
 import { usePendingIncome } from '@/hooks/usePendingIncome';
+import { useSavingsGoals } from '@/hooks/useSavingsGoals';
+import { Progress } from '@/components/ui/progress';
 import { parseDateString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
@@ -71,7 +73,7 @@ const percentageDiff = (current: number, previous: number): number | null => {
   return ((current - previous) / previous) * 100;
 };
 
-export function Dashboard() {
+export function Dashboard({ onNavigate }: { onNavigate?: (tab: string) => void } = {}) {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const { data: movements = [] } = useAllMovements();
   const pendingSummary = usePendingMoneySummary();
@@ -222,11 +224,21 @@ export function Dashboard() {
   const unpaidPaymentsTotal = pendingPayments
     .filter((p) => !p.is_paid)
     .reduce((sum, p) => sum + Number(p.amount), 0);
+  const { data: savingsGoals = [] } = useSavingsGoals();
   const uncollectedIncomeTotal = pendingIncomeList
     .filter((i) => !i.is_collected)
     .reduce((sum, i) => sum + Number(i.amount), 0);
   const projectedBalance = stats.totalBalance - unpaidPaymentsTotal + uncollectedIncomeTotal;
   const balanceDiff = projectedBalance - stats.totalBalance;
+
+  const topGoals = [...savingsGoals]
+    .filter((g) => !g.is_completed && Number(g.target_amount) > 0)
+    .sort(
+      (a, b) =>
+        Number(b.current_amount) / Number(b.target_amount) -
+        Number(a.current_amount) / Number(a.target_amount)
+    )
+    .slice(0, 3);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -594,6 +606,42 @@ export function Dashboard() {
           </ResponsiveContainer>
         </CardContent>
       </Card>
+
+      {/* Metas de ahorro (resumen) */}
+      {topGoals.length > 0 && (
+        <Card className="glass-card">
+          <CardHeader className="pb-2 pt-4 px-4 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <PiggyBank className="w-4 h-4 text-savings" />
+              Metas de ahorro
+            </CardTitle>
+            {onNavigate && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onNavigate('goals')}>
+                Ver todas
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="px-4 pb-4 space-y-3">
+            {topGoals.map((g) => {
+              const pct = Math.min(100, (Number(g.current_amount) / Number(g.target_amount)) * 100);
+              return (
+                <div key={g.id} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <span>{g.icon || '🎯'}</span>
+                      <span className="font-medium truncate">{g.name}</span>
+                    </span>
+                    <span className="text-muted-foreground shrink-0">
+                      {formatCurrency(Number(g.current_amount))} / {formatCurrency(Number(g.target_amount))}
+                    </span>
+                  </div>
+                  <Progress value={pct} className="h-1.5" />
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Savings + Yields */}
       <Card className="glass-card">

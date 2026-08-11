@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, BarChart3, Settings, LogOut, Menu, X, Wallet, Users, CreditCard } from 'lucide-react';
+import { Home, BarChart3, Settings, LogOut, Menu, X, Wallet, Users, CreditCard, PiggyBank } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/lib/auth';
@@ -17,6 +17,7 @@ const navItems = [
   { id: 'home', label: 'Inicio', icon: Home },
   { id: 'shared', label: 'Compartidos', icon: Users },
   { id: 'payments', label: 'Pendientes', icon: CreditCard },
+  { id: 'goals', label: 'Metas', icon: PiggyBank },
   { id: 'summary', label: 'Resumen', icon: BarChart3 },
   { id: 'settings', label: 'Categorías', icon: Settings },
 ];
