@@ -12,6 +12,7 @@ import { SharedExpenses } from '@/components/SharedExpenses';
 import { PendingMoney } from '@/components/PendingMoney';
 import { PendingPayments } from '@/components/PendingPayments';
 import { PendingIncomeComponent } from '@/components/PendingIncome';
+import { SavingsGoals } from '@/components/SavingsGoals';
 import { PendingCalendar } from '@/components/PendingCalendar';
 import { Notifications } from '@/components/Notifications';
 import { ExportData } from '@/components/ExportData';
@@ -49,7 +50,7 @@ export default function Index() {
       {currentTab === 'home' && (
         <div className="space-y-6 pb-20 lg:pb-6">
           <Notifications />
-          <Dashboard />
+          <Dashboard onNavigate={setCurrentTab} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MovementForm />
             <MovementsList />
@@ -69,6 +70,12 @@ export default function Index() {
           <PendingCalendar />
           <PendingIncomeComponent />
           <PendingPayments />
+        </div>
+      )}
+
+      {currentTab === 'goals' && (
+        <div className="space-y-6 pb-20 lg:pb-6">
+          <SavingsGoals />
         </div>
       )}
 
