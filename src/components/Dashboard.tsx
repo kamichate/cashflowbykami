@@ -71,7 +71,7 @@ const percentageDiff = (current: number, previous: number): number | null => {
   return ((current - previous) / previous) * 100;
 };
 
-export function Dashboard() {
+export function Dashboard({ onNavigate }: { onNavigate?: (tab: string) => void } = {}) {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const { data: movements = [] } = useAllMovements();
   const pendingSummary = usePendingMoneySummary();
