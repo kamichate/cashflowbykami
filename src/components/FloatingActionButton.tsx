@@ -16,7 +16,7 @@ export function FloatingActionButton({ currentTab }: FloatingActionButtonProps) 
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 active:scale-95 transition-all"
+        className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 active:scale-95 transition-all"
         aria-label="Agregar movimiento"
       >
         <Plus className="w-6 h-6" />
