@@ -48,7 +48,7 @@ export default function Index() {
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
       {currentTab === 'home' && (
-        <div className="space-y-6 pb-20 lg:pb-6">
+        <div className="space-y-6">
           <Notifications />
           <Dashboard onNavigate={setCurrentTab} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -59,14 +59,14 @@ export default function Index() {
       )}
 
       {currentTab === 'shared' && (
-        <div className="space-y-6 pb-20 lg:pb-6">
+        <div className="space-y-6">
           <PendingMoney />
           <SharedExpenses />
         </div>
       )}
 
       {currentTab === 'payments' && (
-        <div className="space-y-6 pb-20 lg:pb-6">
+        <div className="space-y-6">
           <PendingCalendar />
           <PendingIncomeComponent />
           <PendingPayments />
@@ -74,13 +74,13 @@ export default function Index() {
       )}
 
       {currentTab === 'goals' && (
-        <div className="space-y-6 pb-20 lg:pb-6">
+        <div className="space-y-6">
           <SavingsGoals />
         </div>
       )}
 
       {currentTab === 'summary' && (
-        <div className="space-y-6 pb-20 lg:pb-6">
+        <div className="space-y-6">
           <Charts />
           <SummaryTable type="expense" title="Resumen de Gastos" />
           <SummaryTable type="income" title="Resumen de Ingresos" />
@@ -91,7 +91,7 @@ export default function Index() {
       )}
 
       {currentTab === 'settings' && (
-        <div className="space-y-6 pb-20 lg:pb-6">
+        <div className="space-y-6">
           <CategoryManager />
           <ExportData />
         </div>
