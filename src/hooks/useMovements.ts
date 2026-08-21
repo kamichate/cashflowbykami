@@ -22,6 +22,7 @@ export interface Movement {
   type: MovementType;
   category_id: string | null;
   detail: string | null;
+  notes: string | null;
   amount: number;
   is_withdrawal: boolean;
   is_initial_savings: boolean;
@@ -39,6 +40,7 @@ export interface NewMovement {
   type: MovementType;
   category_id?: string | null;
   detail?: string;
+  notes?: string | null;
   amount: number;
   is_withdrawal?: boolean;
   is_initial_savings?: boolean;
@@ -54,6 +56,7 @@ export interface UpdateMovement {
   type?: MovementType;
   category_id?: string | null;
   detail?: string | null;
+  notes?: string | null;
   amount?: number;
   is_withdrawal?: boolean;
   currency?: 'ARS' | 'USD';
@@ -181,6 +184,7 @@ export function useAddMovement() {
           exchange_rate: movement.exchange_rate || null,
           original_amount: movement.original_amount || null,
           personal_amount: movement.personal_amount ?? null,
+          notes: movement.notes ?? null,
           user_id: user.id,
         })
         .select()
