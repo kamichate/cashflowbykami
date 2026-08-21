@@ -256,7 +256,7 @@ export function useAddCategory() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ name, type }: { name: string; type: MovementType }) => {
+    mutationFn: async ({ name, type, icon }: { name: string; type: MovementType; icon?: string | null }) => {
       if (!user) throw new Error('No user');
 
       const { data, error } = await supabase
@@ -264,6 +264,7 @@ export function useAddCategory() {
         .insert({
           name,
           type,
+          icon: icon ?? null,
           user_id: user.id,
         })
         .select()
