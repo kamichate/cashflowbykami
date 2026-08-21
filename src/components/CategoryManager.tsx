@@ -76,8 +76,6 @@ export function CategoryManager() {
           {Object.keys(typeConfig).map((type) => (
             <TabsContent key={type} value={type} className="space-y-4">
               {/* Add new category */}
-              <div className="flex gap-2">
-              {/* Add new category */}
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
