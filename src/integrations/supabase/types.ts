@@ -53,6 +53,7 @@ export type Database = {
           id: string
           is_initial_savings: boolean
           is_withdrawal: boolean
+          notes: string | null
           original_amount: number | null
           personal_amount: number | null
           type: Database["public"]["Enums"]["movement_type"]
@@ -70,6 +71,7 @@ export type Database = {
           id?: string
           is_initial_savings?: boolean
           is_withdrawal?: boolean
+          notes?: string | null
           original_amount?: number | null
           personal_amount?: number | null
           type: Database["public"]["Enums"]["movement_type"]
@@ -87,6 +89,7 @@ export type Database = {
           id?: string
           is_initial_savings?: boolean
           is_withdrawal?: boolean
+          notes?: string | null
           original_amount?: number | null
           personal_amount?: number | null
           type?: Database["public"]["Enums"]["movement_type"]
