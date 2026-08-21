@@ -68,6 +68,13 @@ export function MovementsList() {
   const [filters, setFilters] = useState<MovementFilters>({});
   const [dateRange, setDateRange] = useState<{ start?: Date; end?: Date }>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const toggleNote = (id: string) =>
+    setExpandedNotes((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
 
   const { data: categories = [] } = useCategories();
