@@ -31,6 +31,7 @@ const typeConfig = {
 
 export function CategoryManager() {
   const [newCategory, setNewCategory] = useState('');
+  const [newIcon, setNewIcon] = useState('');
   const [activeType, setActiveType] = useState<MovementType>('expense');
   
   const { data: categories = [] } = useCategories();
@@ -43,9 +44,12 @@ export function CategoryManager() {
     if (!newCategory.trim()) return;
     
     addCategory.mutate(
-      { name: newCategory.trim(), type: activeType },
+      { name: newCategory.trim(), type: activeType, icon: newIcon.trim() || null },
       {
-        onSuccess: () => setNewCategory(''),
+        onSuccess: () => {
+          setNewCategory('');
+          setNewIcon('');
+        },
       }
     );
   };
