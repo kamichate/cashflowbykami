@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale';
 import { CalendarIcon, Plus, TrendingUp, Wallet, PiggyBank, ArrowDownToLine, ArrowUpFromLine, Archive, ArrowLeftRight, Sparkles, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -43,6 +44,7 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
   const [type, setType] = useState<MovementType>('expense');
   const [categoryId, setCategoryId] = useState('');
   const [detail, setDetail] = useState('');
+  const [notes, setNotes] = useState('');
   const [amount, setAmount] = useState('');
   const [isWithdrawal, setIsWithdrawal] = useState(false);
   const [isInitialSavings, setIsInitialSavings] = useState(false);
@@ -176,6 +178,7 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
         type,
         category_id: needsCategory ? categoryId : null,
         detail: detailText,
+        notes: notes.trim() || null,
         amount: options.amount,
         is_withdrawal: type === 'savings' ? isWithdrawal : false,
         is_initial_savings: type === 'savings' ? isInitialSavings : false,
@@ -188,6 +191,7 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
           if (withInstallments) createRemainingInstallments();
           setCategoryId('');
           setDetail('');
+          setNotes('');
           setAmount('');
           setIsWithdrawal(false);
           setIsInitialSavings(false);
@@ -499,6 +503,20 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
                 onChange={(e) => setDetail(e.target.value)}
                 maxLength={200}
               />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label>Notas (opcional)</Label>
+              <Textarea
+                placeholder="Notas adicionales..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value.slice(0, 200))}
+                maxLength={200}
+                rows={3}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground text-right">{notes.length}/200</p>
             </div>
 
             <Button 

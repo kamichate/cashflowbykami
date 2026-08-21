@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EmojiPicker } from '@/components/EmojiPicker';
 
 import { useCategories, useAddCategory, useDeleteCategory, MovementType } from '@/hooks/useMovements';
 import { cn } from '@/lib/utils';
@@ -31,6 +32,7 @@ const typeConfig = {
 
 export function CategoryManager() {
   const [newCategory, setNewCategory] = useState('');
+  const [newIcon, setNewIcon] = useState('');
   const [activeType, setActiveType] = useState<MovementType>('expense');
   
   const { data: categories = [] } = useCategories();
@@ -43,9 +45,12 @@ export function CategoryManager() {
     if (!newCategory.trim()) return;
     
     addCategory.mutate(
-      { name: newCategory.trim(), type: activeType },
+      { name: newCategory.trim(), type: activeType, icon: newIcon.trim() || null },
       {
-        onSuccess: () => setNewCategory(''),
+        onSuccess: () => {
+          setNewCategory('');
+          setNewIcon('');
+        },
       }
     );
   };
@@ -72,24 +77,28 @@ export function CategoryManager() {
           {Object.keys(typeConfig).map((type) => (
             <TabsContent key={type} value={type} className="space-y-4">
               {/* Add new category */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Nueva categoría..."
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                  maxLength={50}
-                  className="min-w-0"
-                />
-                <Button 
-                  size="icon" 
-                  onClick={handleAdd}
-                  disabled={!newCategory.trim() || addCategory.isPending}
-                  className="shrink-0"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nueva categoría..."
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                    maxLength={50}
+                    className="min-w-0"
+                  />
+                  <Button 
+                    size="icon" 
+                    onClick={handleAdd}
+                    disabled={!newCategory.trim() || addCategory.isPending}
+                    className="shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <EmojiPicker value={newIcon} onChange={setNewIcon} />
               </div>
+
 
               {/* Category list */}
               <div className="max-h-[50vh] sm:max-h-[300px] overflow-y-auto pr-1">
@@ -104,7 +113,10 @@ export function CategoryManager() {
                         key={cat.id}
                         className="flex items-center justify-between gap-2 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                       >
-                        <span className="font-medium truncate min-w-0">{cat.name}</span>
+                        <span className="font-medium truncate min-w-0 flex items-center gap-2">
+                          {cat.icon && <span aria-hidden="true">{cat.icon}</span>}
+                          <span className="truncate">{cat.name}</span>
+                        </span>
                         <Button
                           variant="ghost"
                           size="icon"

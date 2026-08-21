@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign, ArrowLeftRight, Sparkles, Search, Tag } from 'lucide-react';
+import { Trash2, Pencil, TrendingUp, Wallet, PiggyBank, Filter, X, CalendarIcon, ArrowUpFromLine, ArrowDownToLine, Archive, DollarSign, ArrowLeftRight, Sparkles, Search, Tag, StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -68,6 +68,13 @@ export function MovementsList() {
   const [filters, setFilters] = useState<MovementFilters>({});
   const [dateRange, setDateRange] = useState<{ start?: Date; end?: Date }>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const toggleNote = (id: string) =>
+    setExpandedNotes((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null);
 
   const { data: categories = [] } = useCategories();
@@ -419,11 +426,29 @@ export function MovementsList() {
                                 </p>
                               </div>
                               <div className="flex items-center justify-between gap-2 text-xs sm:text-sm text-muted-foreground">
-                                <span className="truncate">{mov.detail || '—'}</span>
+                                <span className="truncate flex items-center gap-1">
+                                  {mov.notes && (
+                                    <button
+                                      type="button"
+                                      title={mov.notes}
+                                      aria-label="Ver nota"
+                                      onClick={() => toggleNote(mov.id)}
+                                      className="shrink-0 text-primary hover:opacity-80 transition-opacity"
+                                    >
+                                      <StickyNote className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <span className="truncate">{mov.detail || '—'}</span>
+                                </span>
                                 <span className="whitespace-nowrap">
                                   {format(parseDateString(mov.date), 'dd MMM', { locale: es })}
                                 </span>
                               </div>
+                              {mov.notes && expandedNotes.has(mov.id) && (
+                                <p className="mt-1 text-xs text-muted-foreground bg-muted/50 rounded-md p-2 whitespace-pre-wrap break-words">
+                                  {mov.notes}
+                                </p>
+                              )}
                             </div>
                             <div className="flex gap-0.5 shrink-0">
                               <Button
