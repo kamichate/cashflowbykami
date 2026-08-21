@@ -77,23 +77,29 @@ export function CategoryManager() {
             <TabsContent key={type} value={type} className="space-y-4">
               {/* Add new category */}
               <div className="flex gap-2">
-                <Input
-                  placeholder="Nueva categoría..."
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                  maxLength={50}
-                  className="min-w-0"
-                />
-                <Button 
-                  size="icon" 
-                  onClick={handleAdd}
-                  disabled={!newCategory.trim() || addCategory.isPending}
-                  className="shrink-0"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+              {/* Add new category */}
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nueva categoría..."
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                    maxLength={50}
+                    className="min-w-0"
+                  />
+                  <Button 
+                    size="icon" 
+                    onClick={handleAdd}
+                    disabled={!newCategory.trim() || addCategory.isPending}
+                    className="shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <EmojiPicker value={newIcon} onChange={setNewIcon} />
               </div>
+
 
               {/* Category list */}
               <div className="max-h-[50vh] sm:max-h-[300px] overflow-y-auto pr-1">
