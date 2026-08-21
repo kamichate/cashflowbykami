@@ -113,7 +113,10 @@ export function CategoryManager() {
                         key={cat.id}
                         className="flex items-center justify-between gap-2 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                       >
-                        <span className="font-medium truncate min-w-0">{cat.name}</span>
+                        <span className="font-medium truncate min-w-0 flex items-center gap-2">
+                          {cat.icon && <span aria-hidden="true">{cat.icon}</span>}
+                          <span className="truncate">{cat.name}</span>
+                        </span>
                         <Button
                           variant="ghost"
                           size="icon"
