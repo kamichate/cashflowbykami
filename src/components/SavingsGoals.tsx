@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +30,11 @@ import {
   useUpdateSavingsGoal,
   useDeleteSavingsGoal,
   useAddToSavingsGoal,
+  needsExchangeRate,
+  sourceCurrency,
   SavingsGoal,
+  GoalCurrency,
+  ContributionSource,
 } from '@/hooks/useSavingsGoals';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
@@ -67,10 +72,13 @@ export function SavingsGoals() {
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [icon, setIcon] = useState('🎯');
   const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [currency, setCurrency] = useState<GoalCurrency>('ARS');
 
   // Contribution dialog
   const [contribGoal, setContribGoal] = useState<SavingsGoal | null>(null);
   const [contribAmount, setContribAmount] = useState('');
+  const [contribSource, setContribSource] = useState<ContributionSource>('income');
+  const [contribRate, setContribRate] = useState('');
   const [createMovement, setCreateMovement] = useState(true);
 
   const resetForm = () => {
@@ -81,6 +89,15 @@ export function SavingsGoals() {
     setDeadline(undefined);
     setIcon('🎯');
     setColor(PRESET_COLORS[0]);
+    setCurrency('ARS');
+  };
+
+  const openContrib = (g: SavingsGoal) => {
+    setContribGoal(g);
+    setContribAmount('');
+    setContribSource('income');
+    setContribRate('');
+    setCreateMovement(true);
   };
 
   const openNew = () => {
@@ -96,6 +113,7 @@ export function SavingsGoals() {
     setDeadline(g.deadline ? parseISO(g.deadline) : undefined);
     setIcon(g.icon || '🎯');
     setColor(g.color || PRESET_COLORS[0]);
+    setCurrency(g.currency || 'ARS');
     setFormOpen(true);
   };
 
@@ -112,6 +130,7 @@ export function SavingsGoals() {
       deadline: deadline ? formatDateToString(deadline) : null,
       icon,
       color,
+      currency,
     };
 
     if (editingGoal) {
@@ -124,16 +143,28 @@ export function SavingsGoals() {
     }
   };
 
+  const rateRequired = contribGoal ? needsExchangeRate(contribSource, contribGoal) : false;
+
   const handleContribute = () => {
     if (!contribGoal) return;
     const amount = parseFloat(contribAmount);
     if (!amount || amount <= 0) return;
+    const rate = contribRate ? parseFloat(contribRate) : undefined;
+    if (rateRequired && (!rate || rate <= 0)) return;
     addContribution.mutate(
-      { goal: contribGoal, amount, createMovement },
+      {
+        goal: contribGoal,
+        amount,
+        source: contribSource,
+        exchange_rate: rateRequired ? rate : undefined,
+        createMovement,
+      },
       {
         onSuccess: () => {
           setContribGoal(null);
           setContribAmount('');
+          setContribRate('');
+          setContribSource('income');
           setCreateMovement(true);
         },
       }
@@ -194,23 +225,17 @@ export function SavingsGoals() {
                 <Progress value={pct} className="h-2" />
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">
-                    {formatCurrency(current)}{' '}
-                    <span className="text-muted-foreground">/ {formatCurrency(target)}</span>
+                    {formatCurrency(current, goal.currency)}{' '}
+                    <span className="text-muted-foreground">
+                      / {formatCurrency(target, goal.currency)}
+                    </span>
                   </span>
                   <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    setContribGoal(goal);
-                    setContribAmount('');
-                    setCreateMovement(true);
-                  }}
-                >
+                <Button size="sm" variant="secondary" onClick={() => openContrib(goal)}>
                   <Plus className="w-3.5 h-3.5 mr-1" />
                   Agregar aporte
                 </Button>
