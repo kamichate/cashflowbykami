@@ -92,6 +92,7 @@ export function useUpdateSavingsGoal() {
       category_id?: string | null;
       icon?: string | null;
       color?: string | null;
+      currency?: GoalCurrency;
       is_completed?: boolean;
     }) => {
       const { data, error } = await supabase
