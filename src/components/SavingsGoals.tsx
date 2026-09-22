@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,15 +30,19 @@ import {
   useUpdateSavingsGoal,
   useDeleteSavingsGoal,
   useAddToSavingsGoal,
+  needsExchangeRate,
+  sourceCurrency,
   SavingsGoal,
+  GoalCurrency,
+  ContributionSource,
 } from '@/hooks/useSavingsGoals';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
-const formatCurrency = (v: number) =>
+const formatCurrency = (v: number, currency: 'ARS' | 'USD' = 'ARS') =>
   new Intl.NumberFormat('es-AR', {
     style: 'currency',
-    currency: 'ARS',
+    currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(v);
@@ -67,10 +72,13 @@ export function SavingsGoals() {
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [icon, setIcon] = useState('🎯');
   const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [currency, setCurrency] = useState<GoalCurrency>('ARS');
 
   // Contribution dialog
   const [contribGoal, setContribGoal] = useState<SavingsGoal | null>(null);
   const [contribAmount, setContribAmount] = useState('');
+  const [contribSource, setContribSource] = useState<ContributionSource>('income');
+  const [contribRate, setContribRate] = useState('');
   const [createMovement, setCreateMovement] = useState(true);
 
   const resetForm = () => {
@@ -81,6 +89,15 @@ export function SavingsGoals() {
     setDeadline(undefined);
     setIcon('🎯');
     setColor(PRESET_COLORS[0]);
+    setCurrency('ARS');
+  };
+
+  const openContrib = (g: SavingsGoal) => {
+    setContribGoal(g);
+    setContribAmount('');
+    setContribSource('income');
+    setContribRate('');
+    setCreateMovement(true);
   };
 
   const openNew = () => {
@@ -96,6 +113,7 @@ export function SavingsGoals() {
     setDeadline(g.deadline ? parseISO(g.deadline) : undefined);
     setIcon(g.icon || '🎯');
     setColor(g.color || PRESET_COLORS[0]);
+    setCurrency(g.currency || 'ARS');
     setFormOpen(true);
   };
 
@@ -112,6 +130,7 @@ export function SavingsGoals() {
       deadline: deadline ? formatDateToString(deadline) : null,
       icon,
       color,
+      currency,
     };
 
     if (editingGoal) {
@@ -124,16 +143,28 @@ export function SavingsGoals() {
     }
   };
 
+  const rateRequired = contribGoal ? needsExchangeRate(contribSource, contribGoal) : false;
+
   const handleContribute = () => {
     if (!contribGoal) return;
     const amount = parseFloat(contribAmount);
     if (!amount || amount <= 0) return;
+    const rate = contribRate ? parseFloat(contribRate) : undefined;
+    if (rateRequired && (!rate || rate <= 0)) return;
     addContribution.mutate(
-      { goal: contribGoal, amount, createMovement },
+      {
+        goal: contribGoal,
+        amount,
+        source: contribSource,
+        exchange_rate: rateRequired ? rate : undefined,
+        createMovement,
+      },
       {
         onSuccess: () => {
           setContribGoal(null);
           setContribAmount('');
+          setContribRate('');
+          setContribSource('income');
           setCreateMovement(true);
         },
       }
@@ -194,23 +225,17 @@ export function SavingsGoals() {
                 <Progress value={pct} className="h-2" />
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">
-                    {formatCurrency(current)}{' '}
-                    <span className="text-muted-foreground">/ {formatCurrency(target)}</span>
+                    {formatCurrency(current, goal.currency)}{' '}
+                    <span className="text-muted-foreground">
+                      / {formatCurrency(target, goal.currency)}
+                    </span>
                   </span>
                   <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    setContribGoal(goal);
-                    setContribAmount('');
-                    setCreateMovement(true);
-                  }}
-                >
+                <Button size="sm" variant="secondary" onClick={() => openContrib(goal)}>
                   <Plus className="w-3.5 h-3.5 mr-1" />
                   Agregar aporte
                 </Button>
@@ -255,6 +280,18 @@ export function SavingsGoals() {
             <div className="space-y-1.5">
               <Label>Nombre</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Viaje a Brasil" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Moneda de la meta</Label>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as GoalCurrency)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-popover">
+                  <SelectItem value="ARS">Pesos (ARS)</SelectItem>
+                  <SelectItem value="USD">Dólares (USD)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -333,7 +370,25 @@ export function SavingsGoals() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Monto</Label>
+              <Label>¿De dónde sale?</Label>
+              <Select value={contribSource} onValueChange={(v) => setContribSource(v as ContributionSource)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-popover">
+                  <SelectItem value="income">De mis ingresos</SelectItem>
+                  <SelectItem value="savings_ars">De mis ahorros en pesos</SelectItem>
+                  <SelectItem value="savings_usd">De mis ahorros en dólares</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                Monto{' '}
+                <span className="text-muted-foreground text-xs">
+                  (en {contribGoal ? sourceCurrency(contribSource, contribGoal) : 'ARS'})
+                </span>
+              </Label>
               <Input
                 type="number"
                 min="0"
@@ -342,6 +397,18 @@ export function SavingsGoals() {
                 placeholder="0"
               />
             </div>
+            {rateRequired && (
+              <div className="space-y-1.5">
+                <Label>Cotización del dólar</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={contribRate}
+                  onChange={(e) => setContribRate(e.target.value)}
+                  placeholder="Ej: 1450"
+                />
+              </div>
+            )}
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
               <Label htmlFor="create-movement" className="text-sm cursor-pointer">
                 ¿Registrar como movimiento de ahorro?
