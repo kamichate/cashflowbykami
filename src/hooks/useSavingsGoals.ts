@@ -58,12 +58,13 @@ export function useAddSavingsGoal() {
       category_id?: string | null;
       icon?: string | null;
       color?: string | null;
+      currency?: GoalCurrency;
     }) => {
       if (!user) throw new Error('No user');
 
       const { data, error } = await supabase
         .from('savings_goals')
-        .insert({ ...goal, user_id: user.id })
+        .insert({ ...goal, currency: goal.currency ?? 'ARS', user_id: user.id })
         .select()
         .single();
 
