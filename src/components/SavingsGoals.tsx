@@ -281,6 +281,18 @@ export function SavingsGoals() {
               <Label>Nombre</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Viaje a Brasil" />
             </div>
+            <div className="space-y-1.5">
+              <Label>Moneda de la meta</Label>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as GoalCurrency)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-popover">
+                  <SelectItem value="ARS">Pesos (ARS)</SelectItem>
+                  <SelectItem value="USD">Dólares (USD)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Monto objetivo</Label>
