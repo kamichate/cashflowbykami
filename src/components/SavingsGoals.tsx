@@ -370,7 +370,25 @@ export function SavingsGoals() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Monto</Label>
+              <Label>¿De dónde sale?</Label>
+              <Select value={contribSource} onValueChange={(v) => setContribSource(v as ContributionSource)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-popover">
+                  <SelectItem value="income">De mis ingresos</SelectItem>
+                  <SelectItem value="savings_ars">De mis ahorros en pesos</SelectItem>
+                  <SelectItem value="savings_usd">De mis ahorros en dólares</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                Monto{' '}
+                <span className="text-muted-foreground text-xs">
+                  (en {contribGoal ? sourceCurrency(contribSource, contribGoal) : 'ARS'})
+                </span>
+              </Label>
               <Input
                 type="number"
                 min="0"
@@ -379,6 +397,18 @@ export function SavingsGoals() {
                 placeholder="0"
               />
             </div>
+            {rateRequired && (
+              <div className="space-y-1.5">
+                <Label>Cotización del dólar</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={contribRate}
+                  onChange={(e) => setContribRate(e.target.value)}
+                  placeholder="Ej: 1450"
+                />
+              </div>
+            )}
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
               <Label htmlFor="create-movement" className="text-sm cursor-pointer">
                 ¿Registrar como movimiento de ahorro?
