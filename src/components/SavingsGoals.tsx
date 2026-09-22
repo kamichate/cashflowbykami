@@ -34,10 +34,10 @@ import {
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 
-const formatCurrency = (v: number) =>
+const formatCurrency = (v: number, currency: 'ARS' | 'USD' = 'ARS') =>
   new Intl.NumberFormat('es-AR', {
     style: 'currency',
-    currency: 'ARS',
+    currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(v);
