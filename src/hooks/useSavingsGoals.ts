@@ -129,9 +129,24 @@ export function useDeleteSavingsGoal() {
   });
 }
 
+/** Moneda en la que se ingresa el aporte según el origen elegido. */
+export function sourceCurrency(source: ContributionSource, goal: SavingsGoal): GoalCurrency {
+  if (source === 'savings_ars') return 'ARS';
+  if (source === 'savings_usd') return 'USD';
+  return goal.currency;
+}
+
+/** Indica si hace falta pedir la cotización para este aporte. */
+export function needsExchangeRate(source: ContributionSource, goal: SavingsGoal): boolean {
+  const from = sourceCurrency(source, goal);
+  if (from !== goal.currency) return true;
+  // Meta en USD financiada con ingresos: el movimiento se guarda en pesos.
+  return goal.currency === 'USD' && source === 'income';
+}
+
 /**
- * Suma un monto al progreso de una meta y, opcionalmente, registra
- * el movimiento de ahorro correspondiente.
+ * Suma un monto al progreso de una meta (en la moneda de la meta) y,
+ * opcionalmente, registra el movimiento de ahorro correspondiente.
  */
 export function useAddToSavingsGoal() {
   const queryClient = useQueryClient();
@@ -141,15 +156,31 @@ export function useAddToSavingsGoal() {
     mutationFn: async ({
       goal,
       amount,
+      source = 'income',
+      exchange_rate,
       createMovement = true,
     }: {
       goal: SavingsGoal;
       amount: number;
+      source?: ContributionSource;
+      exchange_rate?: number;
       createMovement?: boolean;
     }) => {
       if (amount <= 0) throw new Error('El monto debe ser mayor a 0');
 
-      const newAmount = Number(goal.current_amount) + amount;
+      const from = sourceCurrency(source, goal);
+      const rateNeeded = needsExchangeRate(source, goal);
+      if (rateNeeded && (!exchange_rate || exchange_rate <= 0)) {
+        throw new Error('Ingresá la cotización del dólar');
+      }
+      const rate = exchange_rate ?? 0;
+
+      // Progreso de la meta, siempre expresado en la moneda de la meta.
+      let goalIncrement = amount;
+      if (from === 'USD' && goal.currency === 'ARS') goalIncrement = amount * rate;
+      if (from === 'ARS' && goal.currency === 'USD') goalIncrement = amount / rate;
+
+      const newAmount = Number(goal.current_amount) + goalIncrement;
       const isCompleted = newAmount >= Number(goal.target_amount);
 
       const { data, error } = await supabase
@@ -162,12 +193,18 @@ export function useAddToSavingsGoal() {
       if (error) throw error;
 
       if (createMovement) {
+        const isUsd = from === 'USD';
+        const useRate = isUsd && rateNeeded && rate > 0;
+
         await addMovement.mutateAsync({
           date: formatDateToString(new Date()),
           type: 'savings',
           category_id: goal.category_id || undefined,
           detail: `Meta: ${goal.name}`,
-          amount,
+          amount: useRate ? amount * rate : amount,
+          currency: isUsd ? 'USD' : 'ARS',
+          original_amount: isUsd ? amount : undefined,
+          exchange_rate: useRate ? rate : undefined,
         });
       }
 
