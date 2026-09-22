@@ -5,6 +5,9 @@ import { toast } from 'sonner';
 import { useAddMovement } from './useMovements';
 import { formatDateToString } from '@/lib/dateUtils';
 
+export type GoalCurrency = 'ARS' | 'USD';
+export type ContributionSource = 'income' | 'savings_ars' | 'savings_usd';
+
 export interface SavingsGoal {
   id: string;
   user_id: string;
@@ -15,6 +18,7 @@ export interface SavingsGoal {
   category_id: string | null;
   icon: string | null;
   color: string | null;
+  currency: GoalCurrency;
   is_completed: boolean;
   created_at: string;
   updated_at: string;
