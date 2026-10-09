@@ -24,7 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useCategories } from '@/hooks/useMovements';
-import { usePendingPayments, useAddPendingPayment, useMarkPaymentPaid, useDeletePendingPayment, useUpdatePendingPayment, PendingPayment } from '@/hooks/usePendingPayments';
+import { usePendingPayments, useAddPendingPayment, useMarkPaymentPaid, useDeletePendingPayment, useUpdatePendingPayment, useUpdateInstallmentGroup, PendingPayment } from '@/hooks/usePendingPayments';
 import { useAddMovement } from '@/hooks/useMovements';
 import { formatDateToString } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
@@ -57,6 +57,7 @@ export function PendingPayments() {
   const addMovement = useAddMovement();
   const deletePayment = useDeletePendingPayment();
   const updatePayment = useUpdatePendingPayment();
+  const updateInstallmentGroup = useUpdateInstallmentGroup();
 
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -74,6 +75,7 @@ export function PendingPayments() {
   const [editAmount, setEditAmount] = useState('');
   const [editDueDate, setEditDueDate] = useState<Date | undefined>(undefined);
   const [editCategoryId, setEditCategoryId] = useState('none');
+  const [recalcGroup, setRecalcGroup] = useState(false);
 
   const openEdit = (p: PendingPayment) => {
     setEditingPayment(p);
@@ -81,19 +83,45 @@ export function PendingPayments() {
     setEditAmount(String(p.amount));
     setEditDueDate(parseISO(p.due_date));
     setEditCategoryId(p.category_id || 'none');
+    setRecalcGroup(false);
   };
 
   const handleEditSave = () => {
     if (!editingPayment || !editDescription || !editAmount || !editDueDate) return;
-    updatePayment.mutate({
-      id: editingPayment.id,
-      description: editDescription,
-      amount: parseFloat(editAmount),
-      due_date: formatDateToString(editDueDate),
-      category_id: editCategoryId !== 'none' ? editCategoryId : null,
-    }, {
-      onSuccess: () => setEditingPayment(null),
-    });
+    const amount = parseFloat(editAmount);
+    if (amount <= 0) return;
+
+    if (recalcGroup && editingPayment.installment_group_id) {
+      updateInstallmentGroup.mutate(
+        {
+          group_id: editingPayment.installment_group_id,
+          installment_id: editingPayment.id,
+          new_amount: amount,
+        },
+        {
+          onSuccess: () => {
+            updatePayment.mutate({
+              id: editingPayment.id,
+              description: editDescription,
+              due_date: formatDateToString(editDueDate),
+              category_id: editCategoryId !== 'none' ? editCategoryId : null,
+            });
+            setEditingPayment(null);
+          },
+        }
+      );
+    } else {
+      updatePayment.mutate(
+        {
+          id: editingPayment.id,
+          description: editDescription,
+          amount,
+          due_date: formatDateToString(editDueDate),
+          category_id: editCategoryId !== 'none' ? editCategoryId : null,
+        },
+        { onSuccess: () => setEditingPayment(null) }
+      );
+    }
   };
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
@@ -367,6 +395,14 @@ export function PendingPayments() {
                 <p className="text-xs text-destructive mt-1">El monto debe ser mayor a cero</p>
               )}
             </div>
+            {editingPayment?.installment_group_id && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30">
+                <Switch checked={recalcGroup} onCheckedChange={setRecalcGroup} id="recalc" />
+                <Label htmlFor="recalc" className="text-sm cursor-pointer">
+                  Redistribuir el resto de las cuotas automáticamente
+                </Label>
+              </div>
+            )}
             <div>
               <Label>Fecha de vencimiento</Label>
               <Popover>
@@ -393,7 +429,7 @@ export function PendingPayments() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleEditSave} className="w-full" disabled={updatePayment.isPending || !editAmount || parseFloat(editAmount) <= 0 || !editDescription || !editDueDate}>
+            <Button onClick={handleEditSave} className="w-full" disabled={updatePayment.isPending || updateInstallmentGroup.isPending || !editAmount || parseFloat(editAmount) <= 0 || !editDescription || !editDueDate}>
               Guardar cambios
             </Button>
           </div>
