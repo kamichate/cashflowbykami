@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,39 @@ export function ExchangeRateDialog({
   onConfirm 
 }: ExchangeRateDialogProps) {
   const [exchangeRate, setExchangeRate] = useState('');
+  const [loadingRate, setLoadingRate] = useState(false);
+  const [rateLabel, setRateLabel] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    setLoadingRate(true);
+    fetch('https://dolarapi.com/v1/dolares/oficial', { signal: controller.signal })
+      .then(r => {
+        if (!r.ok) throw new Error('Cotización no disponible');
+        return r.json();
+      })
+      .then(data => {
+        const venta = data?.venta;
+        if (typeof venta === 'number' && Number.isFinite(venta) && venta > 0) {
+          setExchangeRate(String(venta));
+          setRateLabel(`Dólar banco hoy: $${venta}`);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingRate(false);
+      });
+    return () => controller.abort();
+  }, [open]);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setExchangeRate('');
+      setRateLabel('');
+    }
+    onOpenChange(nextOpen);
+  };
 
   const arsAmount = exchangeRate ? usdAmount * parseFloat(exchangeRate) : 0;
 
@@ -28,6 +61,7 @@ export function ExchangeRateDialog({
     if (!exchangeRate || parseFloat(exchangeRate) <= 0) return;
     onConfirm(parseFloat(exchangeRate), arsAmount);
     setExchangeRate('');
+    setRateLabel('');
   };
 
   const formatCurrency = (amount: number, currency: 'ARS' | 'USD') => {
@@ -39,7 +73,7 @@ export function ExchangeRateDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -67,6 +101,10 @@ export function ExchangeRateDialog({
               className="text-lg font-semibold"
               autoFocus
             />
+            {loadingRate && <p className="text-xs text-muted-foreground">Buscando cotización...</p>}
+            {rateLabel && !loadingRate && (
+              <p className="text-xs text-muted-foreground">{rateLabel} · podés editarlo</p>
+            )}
           </div>
 
           {exchangeRate && parseFloat(exchangeRate) > 0 && (
@@ -95,10 +133,7 @@ export function ExchangeRateDialog({
           <Button 
             type="button" 
             variant="outline"
-            onClick={() => {
-              setExchangeRate('');
-              onOpenChange(false);
-            }}
+            onClick={() => handleOpenChange(false)}
           >
             Cancelar
           </Button>

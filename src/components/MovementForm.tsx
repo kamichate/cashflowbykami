@@ -127,7 +127,7 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
 
     const parsedAmount = parseFloat(amount);
 
-    if (type === 'savings' && isUsd && !isInitialSavings && !isWithdrawal) {
+    if (type === 'savings' && isUsd && !isInitialSavings) {
       setPendingSubmit({ usdAmount: parsedAmount, isWithdrawal });
       setShowExchangeDialog(true);
       return;
