@@ -17,6 +17,39 @@ import { PendingCalendar } from '@/components/PendingCalendar';
 import { Notifications } from '@/components/Notifications';
 import { ExportData } from '@/components/ExportData';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { useModuleSettings, ModuleSettings } from '@/hooks/useModuleSettings';
+
+const moduleLabels: { key: keyof ModuleSettings; label: string }[] = [
+  { key: 'goals', label: 'Metas de ahorro' },
+  { key: 'shared', label: 'Gastos compartidos' },
+  { key: 'summary', label: 'Resumen' },
+  { key: 'payments', label: 'Pagos pendientes' },
+];
+
+function ModuleSettingsCard() {
+  const { settings, toggle } = useModuleSettings();
+  return (
+    <Card className="glass-card">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg">Módulos activos</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {moduleLabels.map(({ key, label }) => (
+          <div key={key} className="flex items-center justify-between">
+            <span className="text-sm font-medium">{label}</span>
+            <Switch
+              checked={settings[key]}
+              onCheckedChange={() => toggle(key)}
+              aria-label={label}
+            />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Index() {
   const [currentTab, setCurrentTab] = useState('home');
@@ -92,6 +125,7 @@ export default function Index() {
 
       {currentTab === 'settings' && (
         <div className="space-y-6">
+          <ModuleSettingsCard />
           <CategoryManager />
           <ExportData />
         </div>
