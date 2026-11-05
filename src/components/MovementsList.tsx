@@ -381,7 +381,7 @@ export function MovementsList() {
                         return (
                           <div
                             key={mov.id}
-                            className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors animate-slide-up"
+                            className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors animate-slide-up overflow-hidden"
                           >
                             <div className={cn('p-1.5 sm:p-2 rounded-lg shrink-0', isWithdrawal ? 'bg-warning-light' : config.bgColor)}>
                               <Icon className={cn('w-4 h-4', isWithdrawal ? 'text-warning' : config.color)} />
@@ -450,24 +450,26 @@ export function MovementsList() {
                                 </p>
                               )}
                             </div>
-                            <div className="flex gap-0.5 shrink-0">
+                            <div className="flex gap-1 shrink-0 ml-2">
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon"
-                                className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground border-border/50"
+                                aria-label="Editar movimiento"
                                 onClick={() => setEditingMovement(mov)}
                               >
-                                <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                <Pencil className="w-4 h-4" />
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="icon"
-                                    className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-destructive"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive border-border/50"
+                                    aria-label="Eliminar movimiento"
                                     disabled={deleteMovement.isPending}
                                   >
-                                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    <Trash2 className="w-4 h-4" />
                                   </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
