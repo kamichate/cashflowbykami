@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { FloatingActionButton } from './FloatingActionButton';
 import { useTheme } from '@/lib/theme';
 import { usePendingNotificationsCount } from '@/hooks/usePendingNotificationsCount';
+import { useModuleSettings } from '@/hooks/useModuleSettings';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -52,6 +53,12 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { signOut } = useAuth();
   const pendingCount = usePendingNotificationsCount();
+  const { settings } = useModuleSettings();
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.id === 'home' || item.id === 'settings') return true;
+    return settings[item.id as keyof typeof settings];
+  });
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
@@ -65,7 +72,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentTab === item.id;
 
