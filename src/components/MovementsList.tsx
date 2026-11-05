@@ -381,8 +381,9 @@ export function MovementsList() {
                         return (
                           <div
                             key={mov.id}
-                            className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors animate-slide-up overflow-hidden"
+                            className="flex flex-col p-2 sm:p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors animate-slide-up"
                           >
+                            <div className="flex items-center gap-2 sm:gap-3 w-full">
                             <div className={cn('p-1.5 sm:p-2 rounded-lg shrink-0', isWithdrawal ? 'bg-warning-light' : config.bgColor)}>
                               <Icon className={cn('w-4 h-4', isWithdrawal ? 'text-warning' : config.color)} />
                             </div>
@@ -450,7 +451,8 @@ export function MovementsList() {
                                 </p>
                               )}
                             </div>
-                            <div className="flex gap-1 shrink-0 ml-2">
+                            </div>
+                            <div className="flex gap-1 justify-end mt-1">
                               <Button
                                 variant="outline"
                                 size="icon"
