@@ -41,11 +41,54 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_cards: {
+        Row: {
+          bank: string | null
+          closing_day: number
+          color: string | null
+          created_at: string | null
+          due_day: number
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bank?: string | null
+          closing_day: number
+          color?: string | null
+          created_at?: string | null
+          due_day: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bank?: string | null
+          closing_day?: number
+          color?: string | null
+          created_at?: string | null
+          due_day?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       movements: {
         Row: {
           amount: number
           category_id: string | null
           created_at: string
+          credit_card_id: string | null
           currency: string
           date: string
           detail: string | null
@@ -64,6 +107,7 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string
+          credit_card_id?: string | null
           currency?: string
           date?: string
           detail?: string | null
@@ -82,6 +126,7 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string
+          credit_card_id?: string | null
           currency?: string
           date?: string
           detail?: string | null
@@ -102,6 +147,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
             referencedColumns: ["id"]
           },
         ]
@@ -167,6 +219,7 @@ export type Database = {
           amount: number
           category_id: string | null
           created_at: string
+          credit_card_id: string | null
           description: string
           due_date: string
           id: string
@@ -183,6 +236,7 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string
+          credit_card_id?: string | null
           description: string
           due_date: string
           id?: string
@@ -199,6 +253,7 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string
+          credit_card_id?: string | null
           description?: string
           due_date?: string
           id?: string
@@ -217,6 +272,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_payments_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
             referencedColumns: ["id"]
           },
         ]
