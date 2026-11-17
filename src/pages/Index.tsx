@@ -13,6 +13,7 @@ import { PendingMoney } from '@/components/PendingMoney';
 import { PendingPayments } from '@/components/PendingPayments';
 import { PendingIncomeComponent } from '@/components/PendingIncome';
 import { SavingsGoals } from '@/components/SavingsGoals';
+import { CreditCards } from '@/components/CreditCards';
 import { PendingCalendar } from '@/components/PendingCalendar';
 import { Notifications } from '@/components/Notifications';
 import { ExportData } from '@/components/ExportData';
@@ -26,6 +27,7 @@ const moduleLabels: { key: keyof ModuleSettings; label: string }[] = [
   { key: 'shared', label: 'Gastos compartidos' },
   { key: 'summary', label: 'Resumen' },
   { key: 'payments', label: 'Pagos pendientes' },
+  { key: 'cards', label: 'Tarjetas de crédito' },
 ];
 
 function ModuleSettingsCard() {
@@ -109,6 +111,12 @@ export default function Index() {
       {currentTab === 'goals' && (
         <div className="space-y-6">
           <SavingsGoals />
+        </div>
+      )}
+
+      {currentTab === 'cards' && (
+        <div className="space-y-6">
+          <CreditCards />
         </div>
       )}
 

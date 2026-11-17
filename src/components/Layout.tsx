@@ -20,6 +20,7 @@ const navItems = [
   { id: 'payments', label: 'Pendientes', icon: CreditCard },
   { id: 'shared', label: 'Compartidos', icon: Users },
   { id: 'goals', label: 'Metas', icon: PiggyBank },
+  { id: 'cards', label: 'Tarjetas', icon: CreditCard },
   { id: 'summary', label: 'Resumen', icon: BarChart3 },
   { id: 'settings', label: 'Configuración', icon: Settings },
 ];
