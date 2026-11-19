@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
 import { useCategories, useAddMovement, MovementType, Category } from '@/hooks/useMovements';
+import { useCreditCards } from '@/hooks/useCreditCards';
 import { useAddPendingPayment } from '@/hooks/usePendingPayments';
 import { useAddPendingIncome } from '@/hooks/usePendingIncome';
 import { ExchangeRateDialog } from './ExchangeRateDialog';
@@ -48,6 +49,7 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
   const [amount, setAmount] = useState('');
   const [isWithdrawal, setIsWithdrawal] = useState(false);
   const [isInitialSavings, setIsInitialSavings] = useState(false);
+  const [creditCardId, setCreditCardId] = useState<string | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [showExchangeDialog, setShowExchangeDialog] = useState(false);
   const [hasInstallments, setHasInstallments] = useState(false);
@@ -59,6 +61,7 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
   } | null>(null);
 
   const { data: categories = [] } = useCategories();
+  const { data: creditCards = [] } = useCreditCards();
   const addMovement = useAddMovement();
   const addPendingPayment = useAddPendingPayment();
   const addPendingIncome = useAddPendingIncome();
@@ -185,6 +188,7 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
         currency: options.currency,
         exchange_rate: options.exchangeRate,
         original_amount: options.originalAmount,
+        credit_card_id: type === 'expense' ? creditCardId : null,
       },
       {
         onSuccess: () => {
@@ -195,6 +199,7 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
           setAmount('');
           setIsWithdrawal(false);
           setIsInitialSavings(false);
+          setCreditCardId(null);
           setHasInstallments(false);
           setInstallmentCount(2);
           setInstallmentAmounts([]);
@@ -391,6 +396,26 @@ export function MovementForm({ onSuccess, dialogMode }: MovementFormProps) {
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
                         {isUsdCategory(cat) && ' 💵'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Credit card association (expenses only) */}
+            {type === 'expense' && creditCards.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Tarjeta de crédito (opcional)</Label>
+                <Select value={creditCardId || 'none'} onValueChange={(v) => setCreditCardId(v === 'none' ? null : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin tarjeta / efectivo" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50 bg-popover">
+                    <SelectItem value="none">Sin tarjeta / efectivo</SelectItem>
+                    {creditCards.map((card) => (
+                      <SelectItem key={card.id} value={card.id}>
+                        {card.icon || '💳'} {card.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

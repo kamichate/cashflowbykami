@@ -48,6 +48,7 @@ export interface NewMovement {
   exchange_rate?: number;
   original_amount?: number;
   personal_amount?: number;
+  credit_card_id?: string | null;
 }
 
 export interface UpdateMovement {
@@ -184,6 +185,7 @@ export function useAddMovement() {
           exchange_rate: movement.exchange_rate || null,
           original_amount: movement.original_amount || null,
           personal_amount: movement.personal_amount ?? null,
+          credit_card_id: movement.credit_card_id ?? null,
           notes: movement.notes ?? null,
           user_id: user.id,
         })
