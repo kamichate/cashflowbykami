@@ -212,23 +212,35 @@ function SharedExpenseForm({ onSuccess }: { onSuccess: () => void }) {
       })),
     });
 
-    // Installment plans for participants paying in cuotas -> pending income
+    // Pending income: cuotas (installments) + pagos únicos sin cuotas
     const rows = finalParticipants.flatMap((p) => {
-      if (!p.installments) return [];
-      const groupId = crypto.randomUUID();
-      const amounts =
-        p.amounts.length === p.installments
-          ? p.amounts
-          : splitInstallments(p.amount_owed, p.installments);
-      return amounts.map((amt, i) => ({
-        description: `${p.person_name}${description ? ` - ${description}` : ''} (cuota ${i + 1}/${p.installments})`,
-        amount: amt,
-        due_date: formatDateToString(addMonths(parseDateString(date), i + 1)),
-        category_id: null,
-        installment_group_id: groupId,
-        installment_number: i + 1,
-        total_installments: p.installments as number,
-      }));
+      if (p.installments) {
+        // Plan de cuotas
+        const groupId = crypto.randomUUID();
+        const amounts =
+          p.amounts.length === p.installments
+            ? p.amounts
+            : splitInstallments(p.amount_owed, p.installments);
+        return amounts.map((amt, i) => ({
+          description: `${p.person_name}${description ? ` - ${description}` : ''} (cuota ${i + 1}/${p.installments})`,
+          amount: amt,
+          due_date: formatDateToString(addMonths(parseDateString(date), i + 1)),
+          category_id: null,
+          installment_group_id: groupId,
+          installment_number: i + 1,
+          total_installments: p.installments as number,
+        }));
+      } else {
+        // Pago único — aparece como pendiente de cobro desde hoy
+        return [
+          {
+            description: `${p.person_name}${description ? ` - ${description}` : ''}`,
+            amount: p.amount_owed,
+            due_date: date,
+            category_id: null,
+          },
+        ];
+      }
     });
 
     if (rows.length) {
