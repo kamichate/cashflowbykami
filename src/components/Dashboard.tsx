@@ -19,6 +19,7 @@ import { usePendingIncome } from '@/hooks/usePendingIncome';
 import { useSavingsGoals } from '@/hooks/useSavingsGoals';
 import { Progress } from '@/components/ui/progress';
 import { parseDateString } from '@/lib/dateUtils';
+import { useModuleSettings } from '@/hooks/useModuleSettings';
 import { cn } from '@/lib/utils';
 
 const formatCurrency = (value: number, currency: 'ARS' | 'USD' = 'ARS') =>
@@ -50,21 +51,32 @@ const getBalanceImpact = (m: any): number => {
   }
 };
 
-const getMonthStats = (movements: any[], date: Date) => {
-  const month = date.getMonth();
-  const year = date.getFullYear();
+// Dado un día de inicio y una fecha de referencia, devuelve el rango {from, to} del período financiero que contiene esa fecha.
+function getBillingPeriod(ref: Date, startDay: number): { from: Date; to: Date } {
+  const d = ref.getDate();
+  let from: Date;
+  if (d >= startDay) {
+    from = new Date(ref.getFullYear(), ref.getMonth(), startDay);
+  } else {
+    const prev = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
+    from = new Date(prev.getFullYear(), prev.getMonth(), startDay);
+  }
+  const to = new Date(from.getFullYear(), from.getMonth() + 1, startDay - 1);
+  return { from, to };
+}
+
+const getMonthStats = (movements: any[], ref: Date, startDay: number) => {
+  const { from, to } = getBillingPeriod(ref, startDay);
   const monthlyMovements = movements.filter((m) => {
     const d = parseDateString(m.date);
-    return d.getMonth() === month && d.getFullYear() === year;
+    return d >= from && d <= to;
   });
-
   const income = monthlyMovements
     .filter((m) => m.type === 'income')
     .reduce((sum, m) => sum + Number(m.amount), 0);
   const expense = monthlyMovements
     .filter((m) => m.type === 'expense')
     .reduce((sum, m) => sum + Number(m.amount), 0);
-
   return { income, expense, net: income - expense };
 };
 
@@ -78,15 +90,22 @@ export function Dashboard({ onNavigate }: { onNavigate?: (tab: string) => void }
   const { data: movements = [] } = useAllMovements();
   const pendingSummary = usePendingMoneySummary();
 
-  const selectedMonthLabel = format(selectedMonth, 'MMMM yyyy', { locale: es });
-  const isCurrentMonth = selectedMonth.getMonth() === new Date().getMonth() &&
-    selectedMonth.getFullYear() === new Date().getFullYear();
+  const { settings } = useModuleSettings();
+  const startDay = settings.billingStartDay ?? 1;
+
+  const { from: labelFrom, to: labelTo } = getBillingPeriod(selectedMonth, startDay);
+  const selectedMonthLabel = startDay === 1
+    ? format(selectedMonth, 'MMMM yyyy', { locale: es })
+    : `${format(labelFrom, 'd MMM', { locale: es })} – ${format(labelTo, 'd MMM yyyy', { locale: es })}`;
+  const { from: currentFrom } = getBillingPeriod(new Date(), startDay);
+  const { from: selectedFrom } = getBillingPeriod(selectedMonth, startDay);
+  const isCurrentMonth = currentFrom.getTime() === selectedFrom.getTime();
 
   const monthlyStats = useMemo(() => {
-    const current = getMonthStats(movements, selectedMonth);
-    const previous = getMonthStats(movements, subMonths(selectedMonth, 1));
+    const current = getMonthStats(movements, selectedMonth, startDay);
+    const previous = getMonthStats(movements, subMonths(selectedMonth, 1), startDay);
     return { current, previous };
-  }, [movements, selectedMonth]);
+  }, [movements, selectedMonth, startDay]);
 
   const incomeDiff = percentageDiff(monthlyStats.current.income, monthlyStats.previous.income);
   const expenseDiff = percentageDiff(monthlyStats.current.expense, monthlyStats.previous.expense);
@@ -94,11 +113,11 @@ export function Dashboard({ onNavigate }: { onNavigate?: (tab: string) => void }
 
   const monthlyCategoryBreakdown = useMemo(() => {
     const expenseByCat = new Map<string, { name: string; total: number }>();
+    const { from: periodFrom, to: periodTo } = getBillingPeriod(selectedMonth, startDay);
     movements
       .filter((m) => {
         const d = parseDateString(m.date);
-        return d.getMonth() === selectedMonth.getMonth() &&
-          d.getFullYear() === selectedMonth.getFullYear() &&
+        return d >= periodFrom && d <= periodTo &&
           m.type === 'expense' && m.category;
       })
       .forEach((m) => {
@@ -111,27 +130,21 @@ export function Dashboard({ onNavigate }: { onNavigate?: (tab: string) => void }
     return [...expenseByCat.values()]
       .filter((c) => c.total > 0)
       .sort((a, b) => b.total - a.total);
-  }, [movements, selectedMonth]);
+  }, [movements, selectedMonth, startDay]);
 
   const stats = useMemo(() => {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const getMonthYear = (dateStr: string) => {
-      const date = parseDateString(dateStr);
-      return { month: date.getMonth(), year: date.getFullYear() };
-    };
+    const { from: periodFrom, to: periodTo } = getBillingPeriod(now, startDay);
 
     const previousMonthsMovements = movements.filter((m) => {
-      const { month, year } = getMonthYear(m.date);
-      return year < currentYear || (year === currentYear && month < currentMonth);
+      const d = parseDateString(m.date);
+      return d < periodFrom;
     });
     const previousBalance = previousMonthsMovements.reduce((sum, m) => sum + getBalanceImpact(m), 0);
 
     const monthlyMovements = movements.filter((m) => {
-      const { month, year } = getMonthYear(m.date);
-      return month === currentMonth && year === currentYear;
+      const d = parseDateString(m.date);
+      return d >= periodFrom && d <= periodTo;
     });
 
     const income = monthlyMovements
@@ -194,7 +207,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (tab: string) => void }
       totalSavingsARS, totalUsdSavings, totalArsSavings,
       totalYields, categoryBreakdown, patrimonio,
     };
-  }, [movements]);
+  }, [movements, startDay]);
 
   // Last 6 months balance (cumulative end-of-month)
   const balanceHistory = useMemo(() => {
