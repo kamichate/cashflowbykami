@@ -22,7 +22,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { useModuleSettings, ModuleSettings } from '@/hooks/useModuleSettings';
 
-const moduleLabels: { key: keyof ModuleSettings; label: string }[] = [
+type ModuleToggleKey = Exclude<keyof ModuleSettings, 'billingStartDay'>;
+
+const moduleLabels: { key: ModuleToggleKey; label: string }[] = [
   { key: 'goals', label: 'Metas de ahorro' },
   { key: 'shared', label: 'Gastos compartidos' },
   { key: 'summary', label: 'Resumen' },
@@ -31,7 +33,7 @@ const moduleLabels: { key: keyof ModuleSettings; label: string }[] = [
 ];
 
 function ModuleSettingsCard() {
-  const { settings, toggle } = useModuleSettings();
+  const { settings, toggle, set } = useModuleSettings();
   return (
     <Card className="glass-card">
       <CardHeader className="pb-4">
@@ -48,6 +50,24 @@ function ModuleSettingsCard() {
             />
           </div>
         ))}
+
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <p className="text-sm font-medium">Inicio del mes financiero</p>
+            <p className="text-xs text-muted-foreground">Día del mes en que arranca tu período</p>
+          </div>
+          <input
+            type="number"
+            min={1}
+            max={28}
+            value={settings.billingStartDay}
+            onChange={(e) => {
+              const v = parseInt(e.target.value);
+              if (v >= 1 && v <= 28) set('billingStartDay', v);
+            }}
+            className="w-16 text-center rounded-md border border-input bg-background px-2 py-1 text-sm"
+          />
+        </div>
       </CardContent>
     </Card>
   );

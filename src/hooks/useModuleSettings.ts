@@ -8,6 +8,7 @@ const DEFAULTS = {
   summary: true,
   payments: true,
   cards: true,
+  billingStartDay: 1,
 };
 
 export type ModuleSettings = typeof DEFAULTS;
@@ -45,5 +46,11 @@ export function useModuleSettings() {
     listeners.forEach((l) => l());
   };
 
-  return { settings, toggle };
+  const setKey = <K extends keyof ModuleSettings>(key: K, value: ModuleSettings[K]) => {
+    current = { ...current, [key]: value };
+    localStorage.setItem(KEY, JSON.stringify(current));
+    listeners.forEach((l) => l());
+  };
+
+  return { settings, toggle, set: setKey };
 }
