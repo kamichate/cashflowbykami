@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
-  TrendingUp, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
-  History, DollarSign, AlertCircle, Gem, Sparkles, LineChart as LineChartIcon,
+  TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
+  DollarSign, AlertCircle, Gem, Sparkles, LineChart as LineChartIcon,
   PieChart as PieChartIcon, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import {
@@ -230,6 +230,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (tab: string) => void }
     .reduce((sum, i) => sum + Number(i.amount), 0);
   const projectedBalance = stats.totalBalance - unpaidPaymentsTotal + uncollectedIncomeTotal;
   const balanceDiff = projectedBalance - stats.totalBalance;
+  const variation = stats.totalBalance - stats.previousBalance;
 
   const topGoals = [...savingsGoals]
     .filter((g) => !g.is_completed && Number(g.target_amount) > 0)
@@ -286,10 +287,16 @@ export function Dashboard({ onNavigate }: { onNavigate?: (tab: string) => void }
               {formatCurrency(stats.totalBalance)}
             </p>
             {stats.previousBalance !== 0 && (
-              <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
-                <History className="w-2.5 h-2.5" />
-                Anterior: {formatCurrency(stats.previousBalance)}
-              </p>
+              <div className={`flex items-center gap-1 text-xs mt-1 ${variation >= 0 ? 'text-income' : 'text-expense'}`}>
+                {variation >= 0 ? (
+                  <TrendingUp className="w-3 h-3" />
+                ) : (
+                  <TrendingDown className="w-3 h-3" />
+                )}
+                <span>
+                  {variation >= 0 ? '+' : ''}{formatCurrency(variation)} vs mes anterior
+                </span>
+              </div>
             )}
           </CardContent>
         </Card>
